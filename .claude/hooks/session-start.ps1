@@ -7,12 +7,19 @@ git log --oneline -3
 $dirty = (git status --porcelain | Measure-Object -Line).Lines
 Write-Output "dirty files: $dirty"
 
-$state = Get-Item 'PROJECT_STATE.md'
-$lastCommitIso = git log -1 --format=%cI
-if ($state -and $lastCommitIso) {
-    $lastCommit = [datetime]::Parse($lastCommitIso)
-    if ($state.LastWriteTime -lt $lastCommit) {
-        Write-Output 'WARNING: PROJECT_STATE.md is STALE (older than last commit). Update it before new work.'
+# Staleness = commits since PROJECT_STATE.md was last touched (mtime is
+# unreliable: commits don't bump it, clones reset it). A dirty state file
+# counts as fresh (it is being updated right now).
+$stateDirty = (git status --porcelain -- PROJECT_STATE.md | Measure-Object -Line).Lines
+$lastTouch = git log -1 --format=%H -- PROJECT_STATE.md
+if ($stateDirty -gt 0) {
+    Write-Output 'PROJECT_STATE.md: fresh (uncommitted edits)'
+} elseif ($lastTouch) {
+    $behind = [int](git rev-list --count "$lastTouch..HEAD")
+    if ($behind -gt 3) {
+        Write-Output "WARNING: PROJECT_STATE.md is STALE ($behind commits since last update). Update it before new work."
+    } elseif ($behind -gt 0) {
+        Write-Output "PROJECT_STATE.md: $behind commit(s) behind HEAD (ok mid-phase)"
     } else {
         Write-Output 'PROJECT_STATE.md: fresh'
     }
