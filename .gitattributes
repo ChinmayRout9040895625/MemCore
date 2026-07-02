@@ -1,0 +1,17 @@
+# Normalize line endings: LF in the repo, auto-convert on checkout per-OS.
+* text=auto eol=lf
+
+# Explicitly text
+*.py    text eol=lf
+*.toml  text eol=lf
+*.md    text eol=lf
+*.yml   text eol=lf
+*.yaml  text eol=lf
+*.cfg   text eol=lf
+*.ini   text eol=lf
+
+# Binary
+*.png binary
+*.jpg binary
+*.gz  binary
+*.whl binary
