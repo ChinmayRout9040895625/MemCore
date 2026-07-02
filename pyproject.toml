@@ -1,0 +1,143 @@
+[build-system]
+requires = ["hatchling>=1.24"]
+build-backend = "hatchling.build"
+
+[project]
+name = "memcore"
+version = "0.1.0"
+description = "Long-term memory infrastructure layer for AI agents (working / episodic / semantic)."
+readme = "README.md"
+requires-python = ">=3.11,<3.15"
+license = { text = "Apache-2.0" }
+authors = [{ name = "MemCore" }]
+keywords = ["ai", "agents", "memory", "llm", "rag", "vector-database", "knowledge-graph"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: Apache Software License",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Software Development :: Libraries",
+]
+
+# Phase 1 keeps the runtime surface minimal on purpose. Backend clients
+# (qdrant-client, neo4j, redis, celery, ollama, openai) arrive as extras
+# in the phases that introduce their adapters.
+dependencies = [
+    "pydantic>=2.7,<3",
+    "pydantic-settings>=2.3,<3",
+]
+
+[project.optional-dependencies]
+vector = ["qdrant-client>=1.9"]
+graph = ["neo4j>=5.20"]
+working = ["redis>=5.0"]
+scheduler = ["celery>=5.4"]
+embeddings = ["sentence-transformers>=3.0"]
+llm = ["anthropic>=0.34", "openai>=1.40", "httpx>=0.27"]
+api = ["fastapi>=0.111", "uvicorn>=0.30"]
+sql = ["sqlalchemy[asyncio]>=2.0.30", "aiosqlite>=0.20"]
+postgres = ["sqlalchemy[asyncio]>=2.0.30", "asyncpg>=0.29"]
+dev = [
+    "pytest>=8.2",
+    "pytest-cov>=5.0",
+    "pytest-asyncio>=0.23",
+    "httpx>=0.27",
+    "ruff>=0.5",
+    "mypy>=1.10",
+    "pre-commit>=3.7",
+]
+
+[project.urls]
+Homepage = "https://github.com/memcore/memcore"
+Documentation = "https://github.com/memcore/memcore/tree/main/docs"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/memcore"]
+
+# ----------------------------------------------------------------------------
+# Tooling
+# ----------------------------------------------------------------------------
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM", "C4", "PL", "RUF"]
+ignore = ["PLR2004", "PLR0913"]
+
+[tool.ruff.lint.per-file-ignores]
+# PLC0415: lazy imports are intentional here — the factory must not require
+# backend extras for a local run, and integration tests must not import drivers
+# at collection time (they skip when backends are absent).
+"tests/**" = ["PLR2004", "S101", "PLC0415"]
+"src/memcore/adapters/factory.py" = ["PLC0415"]
+# These adapters/workers lazy-import heavy optional backends (torch/openai/
+# anthropic/celery) so the core installs without any extras.
+"src/memcore/adapters/embeddings/*" = ["PLC0415"]
+"src/memcore/adapters/llm/*" = ["PLC0415"]
+"src/memcore/adapters/celery/*" = ["PLC0415"]
+"src/memcore/workers/*" = ["PLC0415"]
+# Contract checks are single-narrative specs; statement-count limits don't apply.
+"src/memcore/testing/contracts.py" = ["PLR0915"]
+
+[tool.mypy]
+# Type target is 3.12: numpy's stubs (transitive via qdrant-client) use 3.12-only
+# `type` syntax that mypy cannot parse under 3.11. Runtime support still includes
+# 3.11 — the pytest matrix runs on 3.11 and is the real 3.11 guard, and ruff's
+# target-version stays py311 to flag 3.11-incompatible syntax.
+python_version = "3.12"
+strict = true
+warn_unused_configs = true
+disallow_untyped_defs = true
+disallow_any_generics = true
+plugins = ["pydantic.mypy"]
+files = ["src", "tests"]
+
+[tool.pytest.ini_options]
+minversion = "8.0"
+addopts = "-ra -q --strict-markers --cov=memcore --cov-report=term-missing --cov-fail-under=85"
+testpaths = ["tests"]
+pythonpath = ["src"]
+asyncio_mode = "auto"
+markers = [
+    "integration: requires live backends (Qdrant/Neo4j/Redis); skipped by default",
+]
+
+[tool.coverage.run]
+branch = true
+source = ["memcore"]
+# Live-backend adapters require running services; they are validated by the
+# integration suite (tests/integration) and their pure helpers by unit tests.
+# Excluded from the unit-coverage gate so it stays meaningful for core logic.
+omit = [
+    "*/adapters/qdrant/*",
+    "*/adapters/neo4j/*",
+    "*/adapters/redis/*",
+]
+
+[tool.coverage.report]
+exclude_lines = ["pragma: no cover", "raise NotImplementedError", "if TYPE_CHECKING:", "\\.\\.\\."]
+
+# Backend drivers may be absent when only the [dev] extra is installed; missing
+# stubs must not fail the type gate. When the extras are installed, real types
+# are used.
+[[tool.mypy.overrides]]
+module = [
+    "qdrant_client.*",
+    "neo4j.*",
+    "redis.*",
+    "sentence_transformers.*",
+    "openai.*",
+    "anthropic.*",
+    "celery.*",
+]
+ignore_missing_imports = true
+
+# Celery's @app.task decorator is untyped; don't let it poison the worker shim.
+[[tool.mypy.overrides]]
+module = ["memcore.workers.celery_app"]
+disallow_untyped_decorators = false
+warn_return_any = false
