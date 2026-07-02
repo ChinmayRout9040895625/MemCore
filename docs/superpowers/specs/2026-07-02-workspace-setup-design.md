@@ -42,7 +42,9 @@ step**, same tier as tests. That rule *is* the refresh loop.
 One **SessionStart** hook running a PowerShell one-liner that emits:
 - last 3 commits (`git log --oneline -3`),
 - dirty-file count (`git status --porcelain | measure`),
-- a staleness warning when `PROJECT_STATE.md` is older than the last commit.
+- a staleness warning when `PROJECT_STATE.md` is more than 3 commits behind
+  HEAD (commit distance, not mtime — mtime false-positives after commits and
+  false-negatives on fresh clones; refined during final review).
 
 Failure mode: hook errors degrade to no injection; never block a session.
 Staleness is flagged, never auto-fixed. No Stop/PostToolUse hooks (noise).
