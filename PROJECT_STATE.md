@@ -11,6 +11,10 @@
 - pytest: **105 passed, 3 integration-skipped** · coverage **94.6%**
 - ruff: clean · mypy (strict, 77 files): clean
 
+## Workspace (2026-07-02)
+- Setup complete: context layer + SessionStart hook + sonnet agents
+  (`implementer`, `debugger`). Dispatch test passed (py.typed, gate green).
+
 ## Next 3 tasks (Phase 6, once approved)
 1. LLM-assessed importance at consolidation (extend extraction prompt + fact scoring).
 2. Usage-based reinforcement curve feeding `importance`/`decay_score`.
