@@ -5,6 +5,19 @@ Format follows [Keep a Changelog](https://keepachangelog.com/); versions follow 
 
 ## [Unreleased]
 
+### Added — Phase 7: Memory decay & pruning
+- `MemoryStore.set_decay` (in-place decay snapshots) and tenant-wide
+  `list_records(agent_id=None)`; contract kit covers both — ADR-0016.
+- `services/decay.py`: `DecayService.sweep` scores ACTIVE records with the
+  Phase 6 functions, snapshots `decay_score`, and soft-deletes records that
+  fail every rail (score < threshold, not pinned, older than `min_age_days`);
+  per-record DELETE audits + one PRUNE summary event per sweep.
+- `RetentionSettings` (`prune_threshold=0.05`, `min_age_days=14`,
+  `scan_limit=10000`) on `Settings.retention`; `AuditAction.PRUNE`;
+  `MemoryService.forget` accepts `reason`.
+- `POST /v1/decay` (202 + job handle) and Celery task `memcore.decay_tenant`.
+- API: `confidence` exposed on remember/correct requests (Phase 6 backlog).
+
 ### Added — Phase 6: Importance scoring
 - `services/importance.py`: pure reinforcement (`n/(n+s)` saturating curve),
   `effective_importance` (bounded boost toward 1.0), `decay_score`

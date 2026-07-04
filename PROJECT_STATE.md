@@ -4,27 +4,24 @@
 > session-start hook says this file is stale, update it before new work.
 
 ## Current position
-- **Phase 6 (Importance scoring): COMPLETE.**
-- **Phase 7 (Memory decay & pruning): NOT STARTED — awaiting user approval.**
-- Phases 1–6 complete and committed (see `git log --oneline`).
+- **Phase 7 (Memory decay & pruning): COMPLETE.**
+- **Phase 8 (Evaluation framework & baselines): NOT STARTED — awaiting user approval.**
+- Phases 1–7 complete and committed (see `git log --oneline`).
 
-## Last gate (Phase 6, 2026-07-04, incl. final-review fix commit)
-- pytest: **125 passed, 3 integration-skipped** · coverage **94.72%**
-- ruff: clean · mypy (strict, 79 files): clean
+## Last gate (Phase 7, 2026-07-04)
+- pytest: **134 passed, 3 integration-skipped** · coverage **94.27%**
+- ruff: clean · mypy (strict, 81 files): clean
 
 ## Workspace (2026-07-02)
 - Setup complete: context layer + SessionStart hook + sonnet agents
   (`implementer`, `debugger`). Dispatch test passed (py.typed, gate green).
 
-## Next tasks (Phase 7, once approved)
-1. Decay job that snapshots `decay_score` (from `services/importance.py`,
-   unchanged) into storage on a schedule.
-2. Prune policy: threshold/age-based deletion (or archival) of decayed,
-   non-pinned records, with audit trail.
-3. Retention configuration + tests (decay job idempotency, prune safety
-   rails, pinned-record exemption end-to-end).
-4. Backlog: expose `confidence` on the API remember/correct schemas
-   (currently settable only by consolidation).
+## Next tasks (Phase 8, once approved)
+1. Evaluation harness: retrieval-quality baselines vs. naive vector search.
+2. Decay/importance ablations (compare ranking with/without reinforcement
+   and decay snapshots from Phases 6–7).
+3. Longitudinal memory-quality metrics (tracking recall quality over
+   simulated time/usage).
 
 ## Open decisions for the user
-- Approve Phase 7 start.
+- Approve Phase 8 start.

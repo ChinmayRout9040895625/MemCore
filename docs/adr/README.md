@@ -21,5 +21,6 @@ supersedes the old one.
 | [0013](0013-retrieval-engine.md) | Hybrid retrieval engine design | Accepted |
 | [0014](0014-consolidation-design.md) | Consolidation agent design | Accepted |
 | [0015](0015-importance-scoring.md) | Importance scoring: LLM-assessed base + read-time reinforcement/decay, pinning | Accepted |
+| [0016](0016-decay-and-pruning.md) | Decay & pruning: per-tenant sweep, snapshot via set_decay, rail-guarded soft-delete prune | Accepted |
 
 > ADR numbering here is renumbered from the design package (§3) for a clean log.

@@ -11,8 +11,8 @@ self-review → fix → approval gate. Never skip tests, docs, or ADR updates.
 | 4 | Retrieval engine (hybrid scoring, graph expansion) | ✅ Complete |
 | 5 | Consolidation agent (extract, conflict-resolve, ops) | ✅ Complete |
 | 6 | Importance scoring | ✅ Complete |
-| 7 | Memory decay & pruning | ⏳ Next |
-| 8 | Evaluation framework & baselines | Planned |
+| 7 | Memory decay & pruning | ✅ Complete |
+| 8 | Evaluation framework & baselines | ⏳ Next |
 | 9 | Python SDK | Planned |
 | 10 | Observability & monitoring | Planned |
 | 11 | Deployment (Docker, K8s, CI/CD) | Planned |
