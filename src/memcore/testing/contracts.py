@@ -164,7 +164,7 @@ async def check_graph_store_contract(store: GraphStore) -> None:
 
 
 async def check_memory_store_contract(store: MemoryStore) -> None:
-    """Verify versioning, isolation, listing, reinforcement, audit, sessions."""
+    """Verify versioning, isolation, listing, reinforcement, decay snapshots, audit, sessions."""
     tenant, agent = f"t_{new_id()[:8]}", "a1"
 
     def make(content: str) -> MemoryRecord:
@@ -227,6 +227,25 @@ async def check_memory_store_contract(store: MemoryStore) -> None:
     assert reinforced is not None
     assert reinforced.access_count == m1_v2.access_count + 1
     assert reinforced.last_accessed_at is not None
+
+    # set_decay: in-place snapshot, tenant-scoped, unknown ids ignored
+    await store.set_decay(tenant, {m1_v2.id: 0.25, "missing-id": 0.5})
+    decayed = await store.get(tenant, m1_v2.id)
+    assert decayed is not None and decayed.decay_score == 0.25
+    assert decayed.version == m1_v2.version  # signal update, not a new version
+    await store.set_decay("other-tenant", {m1_v2.id: 0.9})
+    unchanged = await store.get(tenant, m1_v2.id)
+    assert unchanged is not None and unchanged.decay_score == 0.25
+    await store.set_decay(tenant, {})  # empty snapshot is a no-op
+
+    # list_records with agent_id=None spans all agents in the tenant
+    other_agent = make("Bruno lives in Pune.").model_copy(update={"agent_id": "a2"})
+    await store.add(other_agent)
+    tenant_wide = await store.list_records(tenant, None)
+    assert {r.id for r in tenant_wide} == {m1_v2.id, other_agent.id}
+    # (compare ids, not models: m1_v2's stored copy now carries reinforcement
+    # and decay signals)
+    assert [r.id for r in await store.list_records(tenant, agent)] == [m1_v2.id]
 
     # audit: append-only, tenant-scoped, newest-first
     e1 = AuditEvent(tenant_id=tenant, actor="api", action=AuditAction.CREATE,

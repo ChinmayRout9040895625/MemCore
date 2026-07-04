@@ -34,13 +34,14 @@ class MemoryStore(ABC):
     async def list_records(
         self,
         tenant_id: str,
-        agent_id: str,
+        agent_id: str | None,
         *,
         type: MemoryType | None = None,
         status: MemoryStatus | None = MemoryStatus.ACTIVE,
         limit: int = 100,
     ) -> list[MemoryRecord]:
-        """List records, newest-first. ``status=None`` means all statuses."""
+        """List records, newest-first. ``status=None`` means all statuses;
+        ``agent_id=None`` means all agents in the tenant (decay sweeps)."""
 
     @abstractmethod
     async def versions(self, tenant_id: str, memory_id: str) -> list[MemoryRecord]:
@@ -63,6 +64,14 @@ class MemoryStore(ABC):
         self, tenant_id: str, memory_ids: list[str], accessed_at: datetime
     ) -> None:
         """Bump ``access_count`` / ``last_accessed_at`` after successful recall."""
+
+    @abstractmethod
+    async def set_decay(self, tenant_id: str, scores: dict[str, float]) -> None:
+        """Persist ``decay_score`` snapshots in place (Phase 7 decay job).
+
+        Like ``reinforce`` this is a signal update, never a new version.
+        Ids missing or belonging to another tenant are silently ignored.
+        """
 
     # -- audit ---------------------------------------------------------------
     @abstractmethod

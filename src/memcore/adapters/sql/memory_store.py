@@ -157,7 +157,7 @@ class SqlMemoryStore(MemoryStore):
     async def list_records(
         self,
         tenant_id: str,
-        agent_id: str,
+        agent_id: str | None,
         *,
         type: MemoryType | None = None,
         status: MemoryStatus | None = MemoryStatus.ACTIVE,
@@ -165,10 +165,12 @@ class SqlMemoryStore(MemoryStore):
     ) -> list[MemoryRecord]:
         stmt = (
             select(MemoryRow)
-            .where(MemoryRow.tenant_id == tenant_id, MemoryRow.agent_id == agent_id)
+            .where(MemoryRow.tenant_id == tenant_id)
             .order_by(MemoryRow.created_at.desc())
             .limit(limit)
         )
+        if agent_id is not None:
+            stmt = stmt.where(MemoryRow.agent_id == agent_id)
         if type is not None:
             stmt = stmt.where(MemoryRow.type == type.value)
         if status is not None:
@@ -235,6 +237,17 @@ class SqlMemoryStore(MemoryStore):
         )
         async with self._sessions() as db, db.begin():
             await db.execute(stmt)
+
+    async def set_decay(self, tenant_id: str, scores: dict[str, float]) -> None:
+        if not scores:
+            return
+        async with self._sessions() as db, db.begin():
+            for memory_id, score in scores.items():
+                await db.execute(
+                    update(MemoryRow)
+                    .where(MemoryRow.tenant_id == tenant_id, MemoryRow.id == memory_id)
+                    .values(decay_score=score)
+                )
 
     # -- audit ---------------------------------------------------------------
     async def add_audit(self, event: AuditEvent) -> None:

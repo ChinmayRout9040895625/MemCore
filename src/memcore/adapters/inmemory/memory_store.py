@@ -29,7 +29,7 @@ class InMemoryMemoryStore(MemoryStore):
     async def list_records(
         self,
         tenant_id: str,
-        agent_id: str,
+        agent_id: str | None,
         *,
         type: MemoryType | None = None,
         status: MemoryStatus | None = MemoryStatus.ACTIVE,
@@ -39,7 +39,7 @@ class InMemoryMemoryStore(MemoryStore):
             r
             for (tid, _), r in self._records.items()
             if tid == tenant_id
-            and r.agent_id == agent_id
+            and (agent_id is None or r.agent_id == agent_id)
             and (type is None or r.type == type)
             and (status is None or r.status == status)
         ]
@@ -99,6 +99,14 @@ class InMemoryMemoryStore(MemoryStore):
                         "access_count": record.access_count + 1,
                         "last_accessed_at": accessed_at,
                     }
+                )
+
+    async def set_decay(self, tenant_id: str, scores: dict[str, float]) -> None:
+        for memory_id, score in scores.items():
+            record = await self.get(tenant_id, memory_id)
+            if record is not None:
+                self._records[(tenant_id, memory_id)] = record.model_copy(
+                    update={"decay_score": score}
                 )
 
     # -- audit ---------------------------------------------------------------
