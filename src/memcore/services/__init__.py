@@ -6,6 +6,7 @@ correction, audit emission, hybrid scoring v1).
 
 from memcore.services.consolidation import ConsolidationReport, ConsolidationService
 from memcore.services.context import assemble_context
+from memcore.services.decay import DecayReport, DecayService
 from memcore.services.memories import MemoryService
 from memcore.services.recall import RecallService, ScoreWeights
 from memcore.services.sessions import SessionService
@@ -13,6 +14,8 @@ from memcore.services.sessions import SessionService
 __all__ = [
     "ConsolidationReport",
     "ConsolidationService",
+    "DecayReport",
+    "DecayService",
     "MemoryService",
     "RecallService",
     "ScoreWeights",

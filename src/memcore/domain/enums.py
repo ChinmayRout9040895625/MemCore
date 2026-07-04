@@ -61,6 +61,7 @@ class AuditAction(StrEnum):
     UPDATE = "update"
     DELETE = "delete"
     CONSOLIDATE = "consolidate"
+    PRUNE = "prune"
     FORGET = "forget"
     ERASE = "erase"
 

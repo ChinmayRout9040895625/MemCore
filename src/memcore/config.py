@@ -85,6 +85,22 @@ class ImportanceSettings(BaseModel):
     decay_tau_days: float = Field(default=30.0, gt=0)
 
 
+class RetentionSettings(BaseModel):
+    """Knobs for the decay sweep and prune policy (Phase 7).
+
+    Defaults are deliberately conservative: with the default decay tau of 30
+    days, a never-recalled memory crosses ``prune_threshold=0.05`` only after
+    ~90 days untouched, and ``min_age_days`` protects young records outright.
+    """
+
+    # Records whose decay snapshot falls below this are prune candidates.
+    prune_threshold: float = Field(default=0.05, ge=0.0, le=1.0)
+    # Never prune records younger than this, regardless of score.
+    min_age_days: float = Field(default=14.0, gt=0)
+    # Max records fetched per sweep (v1: single page, newest-first).
+    scan_limit: int = Field(default=10_000, ge=1)
+
+
 class LLMSettings(BaseModel):
     provider: str = "anthropic"  # anthropic (default) | ollama | inmemory
     model: str = "claude-sonnet-5"
@@ -157,6 +173,7 @@ class Settings(BaseSettings):
     retrieval: RetrievalSettings = Field(default_factory=RetrievalSettings)
     consolidation: ConsolidationSettings = Field(default_factory=ConsolidationSettings)
     importance: ImportanceSettings = Field(default_factory=ImportanceSettings)
+    retention: RetentionSettings = Field(default_factory=RetentionSettings)
 
 
 def load_settings() -> Settings:

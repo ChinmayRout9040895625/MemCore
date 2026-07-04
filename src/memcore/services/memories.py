@@ -113,7 +113,8 @@ class MemoryService:
         return new
 
     async def forget(
-        self, tenant_id: str, memory_id: str, *, mode: str = "soft"
+        self, tenant_id: str, memory_id: str, *, mode: str = "soft",
+        reason: str | None = None,
     ) -> None:
         if mode not in ("soft", "hard"):
             raise ValidationError(f"invalid delete mode: {mode!r}")
@@ -130,7 +131,7 @@ class MemoryService:
             tenant_id,
             AuditAction.DELETE if mode == "soft" else AuditAction.ERASE,
             memory_id,
-            reason=f"{mode} delete",
+            reason=reason or f"{mode} delete",
         )
 
     # -- reads -------------------------------------------------------------------
