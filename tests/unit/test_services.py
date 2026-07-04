@@ -117,6 +117,28 @@ async def test_correct_creates_version_and_reindexes(
         await memories.correct(TENANT, v2.id)
 
 
+async def test_remember_stores_confidence(
+    memory_setup: tuple[MemoryService, RecallService, InMemoryVectorStore],
+) -> None:
+    memories, _, _ = memory_setup
+    record = await memories.remember(
+        TENANT, AGENT, "Chinmay's dog is called Bruno.", confidence=0.8
+    )
+    assert record.confidence == 0.8
+
+
+async def test_correct_updates_confidence(
+    memory_setup: tuple[MemoryService, RecallService, InMemoryVectorStore],
+) -> None:
+    memories, _, _ = memory_setup
+    original = await memories.remember(
+        TENANT, AGENT, "Bruno is a beagle.", confidence=0.6
+    )
+    updated = await memories.correct(TENANT, original.id, confidence=0.9)
+    assert updated.confidence == 0.9
+    assert updated.supersedes == original.id
+
+
 async def test_forget_soft_and_hard(
     memory_setup: tuple[MemoryService, RecallService, InMemoryVectorStore],
 ) -> None:

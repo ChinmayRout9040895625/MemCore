@@ -51,6 +51,7 @@ class MemoryService:
         *,
         type: MemoryType = MemoryType.SEMANTIC,
         importance: float = 0.5,
+        confidence: float = 1.0,
         tags: list[str] | None = None,
         source_refs: list[str] | None = None,
         metadata: dict[str, object] | None = None,
@@ -63,6 +64,7 @@ class MemoryService:
             type=type,
             content=content,
             importance=importance,
+            confidence=confidence,
             tags=tags or [],
             source_refs=source_refs or [],
             metadata=dict(metadata or {}),
@@ -80,6 +82,7 @@ class MemoryService:
         *,
         content: str | None = None,
         importance: float | None = None,
+        confidence: float | None = None,
         tags: list[str] | None = None,
         metadata: dict[str, object] | None = None,
     ) -> MemoryRecord:
@@ -90,6 +93,8 @@ class MemoryService:
             changes["content"] = content
         if importance is not None:
             changes["importance"] = importance
+        if confidence is not None:
+            changes["confidence"] = confidence
         if tags is not None:
             changes["tags"] = tags
         if metadata is not None:

@@ -98,12 +98,14 @@ async def test_add_facts_entities_relations_end_to_end() -> None:
     episodic = await env.store.get(TENANT, report.episodic_id)
     assert episodic is not None and episodic.type is MemoryType.EPISODIC
 
-    # Fact record carries the SPO metadata and importance=confidence.
+    # Fact record carries the SPO metadata; confidence and importance are
+    # separate signals (importance defaults to 0.5 when the LLM omits it).
     semantic = await env.store.list_records(TENANT, AGENT, type=MemoryType.SEMANTIC)
     assert len(semantic) == 1
     fact = semantic[0]
     assert fact.metadata["spo"]["object"] == "Apollo"
-    assert fact.importance == 0.9
+    assert fact.confidence == 0.9
+    assert fact.importance == 0.5
 
     # Entities linked, relation provenance points at the fact record.
     chinmay = await env.graph.find_entities(TENANT, AGENT, "Chinmay")
@@ -120,6 +122,39 @@ async def test_add_facts_entities_relations_end_to_end() -> None:
     # Audit trail includes the consolidation event.
     events = await env.store.list_audit(TENANT)
     assert any(e.action is AuditAction.CONSOLIDATE for e in events)
+
+
+async def test_fact_importance_and_confidence_stored_separately() -> None:
+    env = _Env([
+        _extraction(facts=[{
+            "content": "Chinmay's home city is Pune.",
+            "subject": "Chinmay", "predicate": "home city", "object": "Pune",
+            "confidence": 0.9, "importance": 0.8,
+        }])
+    ])
+    session_id = await env.session_with_turns("I live in Pune.")
+    await env.service.consolidate_session(TENANT, session_id)
+
+    semantic = await env.store.list_records(TENANT, AGENT, type=MemoryType.SEMANTIC)
+    assert len(semantic) == 1
+    assert semantic[0].importance == 0.8
+    assert semantic[0].confidence == 0.9
+
+
+async def test_fact_importance_defaults_when_llm_omits_it() -> None:
+    env = _Env([
+        _extraction(facts=[{
+            "content": "Chinmay's home city is Pune.",
+            "subject": "Chinmay", "predicate": "home city", "object": "Pune",
+            "confidence": 0.9,
+        }])
+    ])
+    session_id = await env.session_with_turns("I live in Pune.")
+    await env.service.consolidate_session(TENANT, session_id)
+
+    semantic = await env.store.list_records(TENANT, AGENT, type=MemoryType.SEMANTIC)
+    assert semantic[0].importance == 0.5
+    assert semantic[0].confidence == 0.9
 
 
 async def test_same_fact_twice_is_noop() -> None:
