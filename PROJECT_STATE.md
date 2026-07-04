@@ -8,8 +8,8 @@
 - **Phase 8 (Evaluation framework & baselines): NOT STARTED — awaiting user approval.**
 - Phases 1–7 complete and committed (see `git log --oneline`).
 
-## Last gate (Phase 7, 2026-07-04)
-- pytest: **134 passed, 3 integration-skipped** · coverage **94.27%**
+## Last gate (Phase 7, 2026-07-04, incl. final-review fix commit)
+- pytest: **136 passed, 3 integration-skipped** · coverage **94.28%**
 - ruff: clean · mypy (strict, 81 files): clean
 
 ## Workspace (2026-07-02)
@@ -22,6 +22,10 @@
    and decay snapshots from Phases 6–7).
 3. Longitudinal memory-quality metrics (tracking recall quality over
    simulated time/usage).
+4. Backlog (from Phase 7 final review): oldest-first/paginated decay scan
+   (port change — required for tenants above `scan_limit`); per-tenant sweep
+   dedupe + rate limiting; restore endpoint for soft-deleted records;
+   `set_decay` range clamp in adapters.
 
 ## Open decisions for the user
 - Approve Phase 8 start.

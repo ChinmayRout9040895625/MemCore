@@ -53,7 +53,7 @@ kwarg, threaded into the DELETE audit event.
 accept `confidence`, closing the Phase 6 backlog item (previously settable
 only by consolidation, not the public API).
 
-**Tests** (`tests/services/test_decay.py` and contract-kit additions)
+**Tests** (`tests/unit/test_decay.py` and contract-kit additions)
 - Snapshot correctness (`set_decay` persists scores per record).
 - Prune + audit: DELETE + PRUNE events emitted, reasons include the score.
 - Pinned exemption: pinned records are never pruned regardless of score.
@@ -62,16 +62,21 @@ only by consolidation, not the public API).
 - Tenant isolation: sweep on tenant A never touches tenant B's records.
 - `forget(reason=...)` is recorded on the audit event.
 
-## Gate (2026-07-04)
-- pytest: **134 passed, 3 integration-skipped** · coverage **94.27%**
+## Gate (2026-07-04, incl. final-review fix commit)
+- pytest: **136 passed, 3 integration-skipped** · coverage **94.28%**
 - ruff: clean
 - mypy (strict, 81 files): clean
 
 ## Deferred
 - Paged scanning beyond a single `scan_limit` page — v1 accepts that a
   tenant with more ACTIVE records than `scan_limit` may miss its oldest
-  records in one sweep; subsequent sweeps converge as pruned records free
-  the page (ADR-0016 point 5).
+  records in one sweep. This does **not** converge over repeated sweeps for
+  a tenant persistently writing above `scan_limit`: the page is newest-first,
+  prunable records are ~90+ days old, so an actively-writing tenant never
+  scans its oldest records, and their stored `decay_score` stays stale at
+  1.0 indefinitely. The fix is an oldest-first or paginated scan (requires a
+  port change); deferred to the deployment phase alongside tenant
+  enumeration (ADR-0016 point 5).
 - Tenant enumeration + a Celery-beat recurring schedule — deployment phase;
   MemCore has no tenant-enumeration facility today, so "sweep every tenant
   periodically" cannot be wired up yet.

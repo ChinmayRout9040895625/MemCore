@@ -4,11 +4,10 @@
 
 ## Context
 ADR-0015 defined the decay math (`decay_score = exp(−age/τ)`, `pinned` tag
-exempt) but persisted nothing — `decay_score` was computed on the recall hot
-path and discarded. Without a snapshot and a pruning policy, dead memories
-accumulate forever and the stored `decay_score` field stays a constant 1.0
-(it is never written), so nothing downstream of recall can see how stale a
-record has become.
+exempt) but nothing invoked it — the function shipped with no callers, and
+the stored `decay_score` field stayed a constant 1.0 (it is never written),
+so nothing could see how stale a record has become. Without a snapshot and a
+pruning policy, dead memories accumulate forever.
 
 ## Decision
 
@@ -43,10 +42,13 @@ record has become.
 
 5. **`list_records` gained `agent_id=None`** (tenant-wide, not scoped to one
    agent) so the sweep can see every ACTIVE record for a tenant. v1 scans a
-   single `scan_limit` (default `10_000`) page, newest-first. This is an
-   accepted v1 limitation: oldest records are only missed if a tenant exceeds
-   `scan_limit` ACTIVE records in one sweep, and subsequent sweeps converge
-   as pruned records free up the page.
+   single `scan_limit` (default `10_000`) page, **newest-first** — an accepted
+   v1 limitation with a real consequence: a tenant persistently writing above
+   `scan_limit` ACTIVE records will NOT converge, because prunable records
+   are the oldest ones and the newest-first page never reaches them (their
+   stored `decay_score` also stays stale at 1.0). The fix is an oldest-first
+   or paginated scan, which needs a further port change; deferred to the
+   deployment phase alongside tenant enumeration.
 
 ## Consequences
 - Decayed memories leave the retrievable set reversibly and auditably —
@@ -59,3 +61,14 @@ record has become.
   soft-delete write per pruned record — no new record versions are created.
 - Paged scanning past `scan_limit`, tenant enumeration for scheduled sweeps,
   and a hard-delete retention job are explicitly deferred (see phase-07.md).
+
+### Accepted risks (v1)
+- **Sweep/recall race:** a record recalled in the instant between the sweep's
+  listing and its prune can still be soft-deleted on its stale score. Bounded
+  by the ~90-day-inactivity prerequisite for pruning; there is no restore API
+  yet (the port's `set_status` is the only path back). Deferred to the
+  deployment/security phase.
+- **No sweep dedupe/rate limit:** `POST /v1/decay` is auth'd by tenant key
+  only; concurrent or repeated sweeps can duplicate DELETE audits for the
+  same record and add DB load. Per-tenant in-flight dedupe + rate limiting
+  are deferred to the deployment/security phase.

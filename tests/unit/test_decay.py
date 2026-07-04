@@ -12,6 +12,7 @@ from memcore.adapters.inmemory import (
 from memcore.config import ImportanceSettings, RetentionSettings
 from memcore.domain.enums import AuditAction, MemoryStatus, MemoryType
 from memcore.domain.models import MemoryRecord, utcnow
+from memcore.exceptions import NotFoundError
 from memcore.ports.vector_store import VectorRecord
 from memcore.services.decay import DecayService
 from memcore.services.importance import PINNED_TAG
@@ -180,3 +181,50 @@ async def test_forget_reason_overrides_default_audit_reason() -> None:
     events = await env.store.list_audit(TENANT)
     delete = next(e for e in events if e.action is AuditAction.DELETE)
     assert delete.reason == "decay prune (score=0.010)"
+
+
+async def test_empty_tenant_sweep_still_emits_prune_summary() -> None:
+    env = _Env()
+
+    report = await env.decay.sweep(TENANT)
+
+    assert report.scanned == 0
+    assert report.snapshotted == 0
+    assert report.pruned == 0
+    assert report.failed == 0
+    events = await env.store.list_audit(TENANT)
+    prune_summaries = [e for e in events if e.action is AuditAction.PRUNE]
+    assert len(prune_summaries) == 1
+    assert prune_summaries[0].metadata == {
+        "scanned": 0, "snapshotted": 0, "pruned": 0, "failed": 0, "pinned": 0,
+    }
+
+
+async def test_prune_failure_does_not_abort_sweep() -> None:
+    env = _Env()
+    await env.seed("forgotten trivia one", age=timedelta(days=365))
+    await env.seed("forgotten trivia two", age=timedelta(days=365))
+
+    original_forget = env.memories.forget
+    calls = {"n": 0}
+
+    async def flaky_forget(
+        tenant_id: str, memory_id: str, *, mode: str = "soft",
+        reason: str | None = None,
+    ) -> None:
+        calls["n"] += 1
+        if calls["n"] == 1:
+            raise NotFoundError("simulated concurrent deletion")
+        await original_forget(tenant_id, memory_id, mode=mode, reason=reason)
+
+    env.memories.forget = flaky_forget  # type: ignore[method-assign]
+
+    report = await env.decay.sweep(TENANT)
+
+    assert report.failed == 1
+    assert report.pruned == 1
+    events = await env.store.list_audit(TENANT)
+    prune_summaries = [e for e in events if e.action is AuditAction.PRUNE]
+    assert len(prune_summaries) == 1
+    assert prune_summaries[0].metadata["failed"] == 1
+    assert prune_summaries[0].metadata["pruned"] == 1

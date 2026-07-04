@@ -22,6 +22,7 @@ from pydantic import BaseModel
 from memcore.config import ImportanceSettings, RetentionSettings
 from memcore.domain.enums import AuditAction, MemoryStatus
 from memcore.domain.models import AuditEvent, MemoryRecord, utcnow
+from memcore.exceptions import MemCoreError
 from memcore.logging import get_logger
 from memcore.ports.memory_store import MemoryStore
 from memcore.services.importance import PINNED_TAG, decay_score
@@ -35,6 +36,7 @@ class DecayReport(BaseModel):
     scanned: int = 0
     snapshotted: int = 0
     pruned: int = 0
+    failed: int = 0
     skipped_pinned: int = 0
 
 
@@ -81,11 +83,15 @@ class DecayService:
             report.snapshotted = len(scores)
 
         for record, score in candidates:
-            await self._memories.forget(
-                tenant_id, record.id, mode="soft",
-                reason=f"decay prune (score={score:.3f})",
-            )
-            report.pruned += 1
+            try:
+                await self._memories.forget(
+                    tenant_id, record.id, mode="soft",
+                    reason=f"decay prune (score={score:.3f})",
+                )
+                report.pruned += 1
+            except MemCoreError:
+                report.failed += 1
+                logger.warning("prune failed", extra={"memory_id": record.id})
 
         await self._store.add_audit(
             AuditEvent(
@@ -94,8 +100,16 @@ class DecayService:
                 action=AuditAction.PRUNE,
                 reason=(
                     f"scanned={report.scanned} snapshotted={report.snapshotted} "
-                    f"pruned={report.pruned} pinned={report.skipped_pinned}"
+                    f"pruned={report.pruned} failed={report.failed} "
+                    f"pinned={report.skipped_pinned}"
                 ),
+                metadata={
+                    "scanned": report.scanned,
+                    "snapshotted": report.snapshotted,
+                    "pruned": report.pruned,
+                    "failed": report.failed,
+                    "pinned": report.skipped_pinned,
+                },
             )
         )
         logger.info("decay sweep", extra={"tenant_id": tenant_id,
