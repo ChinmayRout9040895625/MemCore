@@ -21,7 +21,8 @@ stored records. Design in ADR-0015.
 
 **Consolidation** (`services/consolidation.py`)
 - Extraction prompt scores per-fact `importance` (0.0–1.0, independent of
-  extraction confidence; defaults to 0.5 when the LLM omits it).
+  extraction confidence). When the LLM omits it: ADD/needs_review default to
+  0.5; a contradiction UPDATE preserves the prior version's base.
 - Fact `confidence` now stored on `MemoryRecord.confidence` instead of
   overloading `importance`.
 - `MemoryService.remember`/`correct` gained `confidence` kwargs
@@ -42,8 +43,8 @@ stored records. Design in ADR-0015.
   unreinforced base; boost stays bounded by `reinforcement_max_boost`; base
   importance still discriminates between records at equal access count.
 
-## Gate (2026-07-04)
-- pytest: **124 passed, 3 integration-skipped** · coverage **94.80%**
+## Gate (2026-07-04, incl. final-review fix commit)
+- pytest: **125 passed, 3 integration-skipped** · coverage **94.72%**
 - ruff: clean
 - mypy (strict, 79 files): clean
 
@@ -63,5 +64,7 @@ LLM-assessed base (e.g. 0.9) down to the ADD-path default (0.5) instead of
 preserving it. Fixed in a follow-up commit: `ExtractedFact.importance` is now
 `float | None` (default `None`); the UPDATE path passes it through unchanged
 so `correct(importance=None)` preserves the superseded record's base, while
-ADD/needs_review substitute 0.5 when it is `None`. Remaining minor findings
-from the review were triaged acceptable as-is.
+ADD/needs_review substitute 0.5 when it is `None`. Three of the review's
+minor findings (needs_review value assertions, `decay_score` field comment,
+API-confidence backlog entry) were fixed in the same follow-up commit; the
+rest were triaged acceptable as-is.

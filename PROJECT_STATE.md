@@ -8,15 +8,15 @@
 - **Phase 7 (Memory decay & pruning): NOT STARTED — awaiting user approval.**
 - Phases 1–6 complete and committed (see `git log --oneline`).
 
-## Last gate (Phase 6, 2026-07-04)
-- pytest: **124 passed, 3 integration-skipped** · coverage **94.80%**
+## Last gate (Phase 6, 2026-07-04, incl. final-review fix commit)
+- pytest: **125 passed, 3 integration-skipped** · coverage **94.72%**
 - ruff: clean · mypy (strict, 79 files): clean
 
 ## Workspace (2026-07-02)
 - Setup complete: context layer + SessionStart hook + sonnet agents
   (`implementer`, `debugger`). Dispatch test passed (py.typed, gate green).
 
-## Next 3 tasks (Phase 7, once approved)
+## Next tasks (Phase 7, once approved)
 1. Decay job that snapshots `decay_score` (from `services/importance.py`,
    unchanged) into storage on a schedule.
 2. Prune policy: threshold/age-based deletion (or archival) of decayed,
