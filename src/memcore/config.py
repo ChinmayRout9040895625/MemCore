@@ -69,6 +69,22 @@ class RetrievalSettings(BaseModel):
     tau_semantic_days: float = Field(default=30.0, gt=0)
 
 
+class ImportanceSettings(BaseModel):
+    """Knobs for importance reinforcement and decay (Phase 6).
+
+    Reinforcement is a saturating curve of access_count; decay is exponential
+    in time since last access. Both are computed at read time from raw
+    signals — Phase 7's prune job persists snapshots with the same functions.
+    """
+
+    # Access count at which the reinforcement curve reaches half its ceiling.
+    reinforcement_saturation: float = Field(default=5.0, gt=0)
+    # Ceiling of the importance boost: effective <= base + boost * (1 - base).
+    reinforcement_max_boost: float = Field(default=0.3, ge=0.0, le=1.0)
+    # Time constant for decay of untouched memories.
+    decay_tau_days: float = Field(default=30.0, gt=0)
+
+
 class LLMSettings(BaseModel):
     provider: str = "anthropic"  # anthropic (default) | ollama | inmemory
     model: str = "claude-sonnet-5"
@@ -140,6 +156,7 @@ class Settings(BaseSettings):
     api: ApiSettings = Field(default_factory=ApiSettings)
     retrieval: RetrievalSettings = Field(default_factory=RetrievalSettings)
     consolidation: ConsolidationSettings = Field(default_factory=ConsolidationSettings)
+    importance: ImportanceSettings = Field(default_factory=ImportanceSettings)
 
 
 def load_settings() -> Settings:
