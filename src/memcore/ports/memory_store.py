@@ -44,7 +44,8 @@ class MemoryStore(ABC):
         """List records, newest-first by default. ``status=None`` means all
         statuses; ``agent_id=None`` means all agents in the tenant;
         ``oldest_first=True`` reverses the order so bounded scans (decay
-        sweeps) start from the stale end."""
+        sweeps) start from the stale end. Ordering is deterministic: ties on
+        ``created_at`` break by ``id``."""
 
     @abstractmethod
     async def versions(self, tenant_id: str, memory_id: str) -> list[MemoryRecord]:

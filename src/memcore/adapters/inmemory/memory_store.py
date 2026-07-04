@@ -44,7 +44,7 @@ class InMemoryMemoryStore(MemoryStore):
             and (type is None or r.type == type)
             and (status is None or r.status == status)
         ]
-        rows.sort(key=lambda r: r.created_at, reverse=not oldest_first)
+        rows.sort(key=lambda r: (r.created_at, r.id), reverse=not oldest_first)
         return rows[:limit]
 
     async def versions(self, tenant_id: str, memory_id: str) -> list[MemoryRecord]:

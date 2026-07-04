@@ -169,7 +169,8 @@ class SqlMemoryStore(MemoryStore):
             .where(MemoryRow.tenant_id == tenant_id)
             .order_by(
                 MemoryRow.created_at.asc() if oldest_first
-                else MemoryRow.created_at.desc()
+                else MemoryRow.created_at.desc(),
+                MemoryRow.id.asc() if oldest_first else MemoryRow.id.desc(),
             )
             .limit(limit)
         )
