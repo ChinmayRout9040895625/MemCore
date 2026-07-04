@@ -22,6 +22,7 @@ from memcore.api.deps import AppState
 from memcore.config import Settings
 from memcore.services import (
     ConsolidationService,
+    DecayService,
     MemoryService,
     RecallService,
     SessionService,
@@ -54,6 +55,13 @@ def _state() -> AppState:
         )
 
     workflow.register("consolidate_session", _consolidate)
+
+    decay = DecayService(store, memories)
+
+    async def _decay(payload: dict[str, object]) -> None:
+        await decay.sweep(str(payload["tenant_id"]))
+
+    workflow.register("decay_tenant", _decay)
     return AppState(
         store=store,
         working=working,
@@ -304,3 +312,32 @@ async def test_create_app_builds_state_and_runs_lifespan() -> None:
         # Lifespan created tables + collection: a real write must succeed.
         record = await state.memories.remember("local", "a1", "boot check")
         assert (await state.store.get("local", record.id)) is not None
+
+
+async def test_decay_endpoint_enqueues_sweep(client: AsyncClient) -> None:
+    response = await client.post("/v1/decay", headers=_h())
+    assert response.status_code == 202
+    body = response.json()
+    assert body["state"] == "succeeded"  # immediate engine runs inline
+    job = await client.get(f"/v1/jobs/{body['job_id']}", headers=_h())
+    assert job.status_code == 200
+
+
+async def test_remember_and_correct_accept_confidence(client: AsyncClient) -> None:
+    created = await client.post(
+        "/v1/memories",
+        json={"agent_id": "a1", "content": "Bruno is a beagle.",
+              "confidence": 0.7},
+        headers=_h(),
+    )
+    assert created.status_code == 201
+    memory = created.json()["memory"]
+    assert memory["confidence"] == 0.7
+
+    corrected = await client.patch(
+        f"/v1/memories/{memory['id']}",
+        json={"confidence": 0.9},
+        headers=_h(),
+    )
+    assert corrected.status_code == 200
+    assert corrected.json()["memory"]["confidence"] == 0.9

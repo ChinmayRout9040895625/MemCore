@@ -71,3 +71,35 @@ def consolidate_session(tenant_id: str, session_id: str) -> dict[str, Any]:
     report = asyncio.run(service.consolidate_session(tenant_id, session_id))
     logger.info("consolidated", extra={"session_id": session_id})
     return report.model_dump()
+
+
+def _get_decay(settings: Settings) -> Any:
+    """Build (once per worker process) the decay service graph."""
+    if "decay" not in _cache:
+        from memcore.adapters.factory import (
+            build_embedding_provider,
+            build_memory_store,
+            build_vector_store,
+        )
+        from memcore.services.decay import DecayService
+        from memcore.services.memories import MemoryService
+
+        store = build_memory_store(settings)
+        vectors = build_vector_store(settings)
+        embedder = build_embedding_provider(settings)
+        collection = f"{settings.vector.collection_prefix}_{embedder.dimension}"
+        memories = MemoryService(store, vectors, embedder, collection=collection)
+        _cache["decay"] = DecayService(
+            store, memories,
+            importance=settings.importance,
+            retention=settings.retention,
+        )
+    return _cache["decay"]
+
+
+@app.task(name="memcore.decay_tenant")
+def decay_tenant(tenant_id: str) -> dict[str, Any]:
+    service = _get_decay(_settings)
+    report = asyncio.run(service.sweep(tenant_id))
+    logger.info("decay swept", extra={"tenant_id": tenant_id})
+    return report.model_dump()

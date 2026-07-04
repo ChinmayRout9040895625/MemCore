@@ -34,12 +34,14 @@ class RememberRequest(_Req):
     content: str = Field(min_length=1)
     type: MemoryType = MemoryType.SEMANTIC
     importance: float = Field(default=0.5, ge=0.0, le=1.0)
+    confidence: float = Field(default=1.0, ge=0.0, le=1.0)
     tags: list[str] = Field(default_factory=list)
 
 
 class CorrectMemoryRequest(_Req):
     content: str | None = None
     importance: float | None = Field(default=None, ge=0.0, le=1.0)
+    confidence: float | None = Field(default=None, ge=0.0, le=1.0)
     tags: list[str] | None = None
 
 

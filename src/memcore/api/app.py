@@ -38,6 +38,7 @@ from memcore.exceptions import (
 from memcore.logging import configure_logging, get_logger
 from memcore.services import (
     ConsolidationService,
+    DecayService,
     MemoryService,
     RecallService,
     SessionService,
@@ -79,6 +80,11 @@ def build_state(settings: Settings) -> AppState:
         build_llm_provider(settings),
         settings=settings.consolidation,
     )
+    decay = DecayService(
+        store, memories,
+        importance=settings.importance,
+        retention=settings.retention,
+    )
     workflow = build_workflow_engine(settings)
     if isinstance(workflow, ImmediateWorkflowEngine):
 
@@ -88,6 +94,11 @@ def build_state(settings: Settings) -> AppState:
             )
 
         workflow.register("consolidate_session", _consolidate)
+
+        async def _decay(payload: dict[str, object]) -> None:
+            await decay.sweep(str(payload["tenant_id"]))
+
+        workflow.register("decay_tenant", _decay)
 
     return AppState(
         store=store,

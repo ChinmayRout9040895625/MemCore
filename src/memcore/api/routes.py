@@ -82,6 +82,7 @@ async def remember(
         body.content,
         type=body.type,
         importance=body.importance,
+        confidence=body.confidence,
         tags=body.tags,
     )
     return MemoryResponse(memory=record)
@@ -110,6 +111,7 @@ async def correct_memory(
         memory_id,
         content=body.content,
         importance=body.importance,
+        confidence=body.confidence,
         tags=body.tags,
     )
     return MemoryResponse(memory=record)
@@ -141,6 +143,14 @@ async def consolidate(
 @router.get("/jobs/{job_id}", response_model=JobResponse)
 async def job_status(job_id: str, state: StateDep, tenant: TenantDep) -> JobResponse:
     handle = await state.workflow.status(job_id)
+    return JobResponse(job_id=handle.id, state=handle.state.value)
+
+
+# -- decay ---------------------------------------------------------------------
+@router.post("/decay", response_model=JobResponse, status_code=202)
+async def run_decay(state: StateDep, tenant: TenantDep) -> JobResponse:
+    """Enqueue a decay sweep for the calling tenant (snapshot + prune)."""
+    handle = await state.workflow.enqueue("decay_tenant", {"tenant_id": tenant})
     return JobResponse(job_id=handle.id, state=handle.state.value)
 
 
