@@ -23,14 +23,19 @@ def mrr(relevant: set[str], ranked: list[str]) -> float:
 
 
 def ndcg_at_k(relevant: set[str], ranked: list[str], k: int) -> float:
-    """Normalized discounted cumulative gain at ``k`` (binary gains)."""
+    """Normalized discounted cumulative gain at ``k`` (binary gains).
+
+    Duplicate ids in ``ranked`` gain only on their first occurrence, so the
+    result stays bounded [0, 1] even for degenerate inputs.
+    """
     if not relevant:
         return 0.0
-    dcg = sum(
-        1.0 / math.log2(index + 2)
-        for index, item in enumerate(ranked[:k])
-        if item in relevant
-    )
+    seen: set[str] = set()
+    dcg = 0.0
+    for index, item in enumerate(ranked[:k]):
+        if item in relevant and item not in seen:
+            seen.add(item)
+            dcg += 1.0 / math.log2(index + 2)
     ideal_hits = min(len(relevant), k)
     idcg = sum(1.0 / math.log2(index + 2) for index in range(ideal_hits))
     return dcg / idcg if idcg > 0 else 0.0

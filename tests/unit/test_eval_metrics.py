@@ -55,3 +55,6 @@ class TestNdcgAtK:
         for ranked in (["a"], ["x", "a"], ["a", "b", "c"]):
             value = ndcg_at_k({"a", "b"}, ranked, k=3)
             assert 0.0 <= value <= 1.0
+
+    def test_duplicate_ids_gain_once_and_stay_bounded(self) -> None:
+        assert ndcg_at_k({"a"}, ["a", "a", "a"], k=3) == pytest.approx(1.0)
