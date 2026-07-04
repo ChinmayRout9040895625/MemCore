@@ -60,6 +60,7 @@ class DecayService:
             tenant_id, None,
             status=MemoryStatus.ACTIVE,
             limit=self._retention.scan_limit,
+            oldest_first=True,
         )
         report = DecayReport(tenant_id=tenant_id, scanned=len(records))
 

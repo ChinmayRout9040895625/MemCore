@@ -22,10 +22,8 @@
    and decay snapshots from Phases 6–7).
 3. Longitudinal memory-quality metrics (tracking recall quality over
    simulated time/usage).
-4. Backlog (from Phase 7 final review): oldest-first/paginated decay scan
-   (port change — required for tenants above `scan_limit`); per-tenant sweep
-   dedupe + rate limiting; restore endpoint for soft-deleted records;
-   `set_decay` range clamp in adapters.
+4. Backlog (from Phase 7 final review): per-tenant sweep dedupe + rate
+   limiting; restore endpoint for soft-deleted records.
 
 ## Open decisions for the user
 - Approve Phase 8 start.

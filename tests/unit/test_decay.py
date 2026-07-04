@@ -200,6 +200,23 @@ async def test_empty_tenant_sweep_still_emits_prune_summary() -> None:
     }
 
 
+async def test_sweep_scans_oldest_first_under_scan_limit() -> None:
+    # With scan_limit=1 the page must contain the OLDEST record, so the
+    # ancient prunable record is swept even though a fresh one exists.
+    env = _Env(retention=RetentionSettings(scan_limit=1))
+    ancient = await env.seed("forgotten trivia", age=timedelta(days=365))
+    fresh = await env.seed("fresh fact")
+
+    report = await env.decay.sweep(TENANT)
+
+    assert report.scanned == 1
+    assert report.pruned == 1
+    pruned = await env.store.get(TENANT, ancient.id)
+    assert pruned is not None and pruned.status is MemoryStatus.SOFT_DELETED
+    kept = await env.store.get(TENANT, fresh.id)
+    assert kept is not None and kept.status is MemoryStatus.ACTIVE
+
+
 async def test_prune_failure_does_not_abort_sweep() -> None:
     env = _Env()
     await env.seed("forgotten trivia one", age=timedelta(days=365))

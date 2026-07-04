@@ -2,6 +2,9 @@
 
 **Status:** Accepted (2026-07-04)
 
+**Amended:** 2026-07-04 (Phase 8) — sweep scans oldest-first; `set_decay`
+clamps scores to [0, 1] at the adapter layer.
+
 ## Context
 ADR-0015 defined the decay math (`decay_score = exp(−age/τ)`, `pinned` tag
 exempt) but nothing invoked it — the function shipped with no callers, and
@@ -42,13 +45,11 @@ pruning policy, dead memories accumulate forever.
 
 5. **`list_records` gained `agent_id=None`** (tenant-wide, not scoped to one
    agent) so the sweep can see every ACTIVE record for a tenant. v1 scans a
-   single `scan_limit` (default `10_000`) page, **newest-first** — an accepted
-   v1 limitation with a real consequence: a tenant persistently writing above
-   `scan_limit` ACTIVE records will NOT converge, because prunable records
-   are the oldest ones and the newest-first page never reaches them (their
-   stored `decay_score` also stays stale at 1.0). The fix is an oldest-first
-   or paginated scan, which needs a further port change; deferred to the
-   deployment phase alongside tenant enumeration.
+   single `scan_limit` (default `10_000`) page, **oldest-first** (amended in
+   Phase 8): the page always contains the tenant's most-decayed records, so
+   tenants above `scan_limit` converge across sweeps — `scan_limit` now only
+   bounds per-sweep work, and snapshots for records beyond the page catch up
+   on subsequent sweeps.
 
 ## Consequences
 - Decayed memories leave the retrievable set reversibly and auditably —

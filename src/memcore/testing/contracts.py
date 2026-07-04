@@ -247,6 +247,19 @@ async def check_memory_store_contract(store: MemoryStore) -> None:
     # and decay signals)
     assert [r.id for r in await store.list_records(tenant, agent)] == [m1_v2.id]
 
+    # set_decay clamps out-of-range scores to [0, 1] instead of persisting them
+    await store.set_decay(tenant, {m1_v2.id: 1.7})
+    clamped_high = await store.get(tenant, m1_v2.id)
+    assert clamped_high is not None and clamped_high.decay_score == 1.0
+    await store.set_decay(tenant, {m1_v2.id: -0.3})
+    clamped_low = await store.get(tenant, m1_v2.id)
+    assert clamped_low is not None and clamped_low.decay_score == 0.0
+
+    # oldest_first flips the ordering (decay sweeps scan from the stale end)
+    newest = await store.list_records(tenant, None)
+    oldest = await store.list_records(tenant, None, oldest_first=True)
+    assert [r.id for r in oldest] == [r.id for r in reversed(newest)]
+
     # audit: append-only, tenant-scoped, newest-first
     e1 = AuditEvent(tenant_id=tenant, actor="api", action=AuditAction.CREATE,
                     target_id=m1.id)

@@ -39,9 +39,12 @@ class MemoryStore(ABC):
         type: MemoryType | None = None,
         status: MemoryStatus | None = MemoryStatus.ACTIVE,
         limit: int = 100,
+        oldest_first: bool = False,
     ) -> list[MemoryRecord]:
-        """List records, newest-first. ``status=None`` means all statuses;
-        ``agent_id=None`` means all agents in the tenant (decay sweeps)."""
+        """List records, newest-first by default. ``status=None`` means all
+        statuses; ``agent_id=None`` means all agents in the tenant;
+        ``oldest_first=True`` reverses the order so bounded scans (decay
+        sweeps) start from the stale end."""
 
     @abstractmethod
     async def versions(self, tenant_id: str, memory_id: str) -> list[MemoryRecord]:

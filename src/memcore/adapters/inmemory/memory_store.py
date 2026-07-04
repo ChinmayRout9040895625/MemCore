@@ -34,6 +34,7 @@ class InMemoryMemoryStore(MemoryStore):
         type: MemoryType | None = None,
         status: MemoryStatus | None = MemoryStatus.ACTIVE,
         limit: int = 100,
+        oldest_first: bool = False,
     ) -> list[MemoryRecord]:
         rows = [
             r
@@ -43,7 +44,7 @@ class InMemoryMemoryStore(MemoryStore):
             and (type is None or r.type == type)
             and (status is None or r.status == status)
         ]
-        rows.sort(key=lambda r: r.created_at, reverse=True)
+        rows.sort(key=lambda r: r.created_at, reverse=not oldest_first)
         return rows[:limit]
 
     async def versions(self, tenant_id: str, memory_id: str) -> list[MemoryRecord]:
@@ -106,7 +107,7 @@ class InMemoryMemoryStore(MemoryStore):
             record = await self.get(tenant_id, memory_id)
             if record is not None:
                 self._records[(tenant_id, memory_id)] = record.model_copy(
-                    update={"decay_score": score}
+                    update={"decay_score": min(1.0, max(0.0, score))}
                 )
 
     # -- audit ---------------------------------------------------------------

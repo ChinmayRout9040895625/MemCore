@@ -162,11 +162,15 @@ class SqlMemoryStore(MemoryStore):
         type: MemoryType | None = None,
         status: MemoryStatus | None = MemoryStatus.ACTIVE,
         limit: int = 100,
+        oldest_first: bool = False,
     ) -> list[MemoryRecord]:
         stmt = (
             select(MemoryRow)
             .where(MemoryRow.tenant_id == tenant_id)
-            .order_by(MemoryRow.created_at.desc())
+            .order_by(
+                MemoryRow.created_at.asc() if oldest_first
+                else MemoryRow.created_at.desc()
+            )
             .limit(limit)
         )
         if agent_id is not None:
@@ -246,7 +250,7 @@ class SqlMemoryStore(MemoryStore):
                 await db.execute(
                     update(MemoryRow)
                     .where(MemoryRow.tenant_id == tenant_id, MemoryRow.id == memory_id)
-                    .values(decay_score=score)
+                    .values(decay_score=min(1.0, max(0.0, score)))
                 )
 
     # -- audit ---------------------------------------------------------------
