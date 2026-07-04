@@ -5,6 +5,17 @@ Format follows [Keep a Changelog](https://keepachangelog.com/); versions follow 
 
 ## [Unreleased]
 
+### Added — Phase 6: Importance scoring
+- `services/importance.py`: pure reinforcement (`n/(n+s)` saturating curve),
+  `effective_importance` (bounded boost toward 1.0), `decay_score`
+  (exp(−age/τ) from last access; `pinned` tag exempt) — ADR-0015.
+- Consolidation: extraction prompt scores per-fact `importance` (0–1,
+  long-term value, independent of confidence); fact `confidence` now stored
+  on `MemoryRecord.confidence` instead of overloading `importance`.
+- `MemoryService.remember`/`correct` accept `confidence`.
+- Recall ranks with usage-reinforced effective importance
+  (`ImportanceSettings` wired via `Settings.importance`).
+
 ### Added — Phase 5: Consolidation agent
 - LLM adapters: `AnthropicLLMProvider` (Claude Sonnet, JSON prefill),
   `OllamaLLMProvider` (httpx), `FailoverLLMProvider`, `ScriptedLLMProvider`.

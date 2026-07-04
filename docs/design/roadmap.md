@@ -10,8 +10,8 @@ self-review → fix → approval gate. Never skip tests, docs, or ADR updates.
 | 3 | Memory APIs (FastAPI: sessions, memories, recall) | ✅ Complete |
 | 4 | Retrieval engine (hybrid scoring, graph expansion) | ✅ Complete |
 | 5 | Consolidation agent (extract, conflict-resolve, ops) | ✅ Complete |
-| 6 | Importance scoring | ⏳ Next |
-| 7 | Memory decay & pruning | Planned |
+| 6 | Importance scoring | ✅ Complete |
+| 7 | Memory decay & pruning | ⏳ Next |
 | 8 | Evaluation framework & baselines | Planned |
 | 9 | Python SDK | Planned |
 | 10 | Observability & monitoring | Planned |
