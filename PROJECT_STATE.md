@@ -23,6 +23,8 @@
    non-pinned records, with audit trail.
 3. Retention configuration + tests (decay job idempotency, prune safety
    rails, pinned-record exemption end-to-end).
+4. Backlog: expose `confidence` on the API remember/correct schemas
+   (currently settable only by consolidation).
 
 ## Open decisions for the user
 - Approve Phase 7 start.

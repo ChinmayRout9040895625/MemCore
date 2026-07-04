@@ -13,9 +13,12 @@ fact matters long-term." Neither usage (retrieval strengthens memory) nor time
 
 1. **Base importance is write-time, LLM-assessed per fact.** The consolidation
    extraction prompt scores each candidate fact's `importance` (0.0–1.0,
-   independent of extraction confidence; defaults to 0.5 when the LLM omits
-   it). Confidence is stored separately on `MemoryRecord.confidence` instead of
-   overloading `importance`.
+   independent of extraction confidence). When the LLM omits it: an ADD or
+   needs_review write defaults to 0.5; a contradiction UPDATE instead preserves
+   the superseded record's prior base importance (`correct(importance=None)`
+   means "don't change this field" — a lower-fidelity extraction must not
+   flatten an already-assessed base). Confidence is stored separately on
+   `MemoryRecord.confidence` instead of overloading `importance`.
 
 2. **Usage reinforcement and time decay are pure read-time functions** over
    raw stored signals (`access_count`, `last_accessed_at`, `created_at`,

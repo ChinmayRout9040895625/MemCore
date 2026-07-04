@@ -11,7 +11,9 @@ Format follows [Keep a Changelog](https://keepachangelog.com/); versions follow 
   (exp(−age/τ) from last access; `pinned` tag exempt) — ADR-0015.
 - Consolidation: extraction prompt scores per-fact `importance` (0–1,
   long-term value, independent of confidence); fact `confidence` now stored
-  on `MemoryRecord.confidence` instead of overloading `importance`.
+  on `MemoryRecord.confidence` instead of overloading `importance`. When the
+  LLM omits `importance`: ADD/needs_review default to 0.5; a contradiction
+  UPDATE instead preserves the prior version's base importance.
 - `MemoryService.remember`/`correct` accept `confidence`.
 - Recall ranks with usage-reinforced effective importance
   (`ImportanceSettings` wired via `Settings.importance`).

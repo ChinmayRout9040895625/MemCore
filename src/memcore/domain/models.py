@@ -82,6 +82,7 @@ class MemoryRecord(_Base):
     created_at: datetime = Field(default_factory=utcnow)
     last_accessed_at: datetime | None = None
     access_count: int = Field(default=0, ge=0)
+    # Snapshot maintained by the Phase 7 decay job, not recomputed live (ADR-0015).
     decay_score: float = Field(default=1.0, ge=0.0, le=1.0)
 
     # Bitemporal validity (world-time).

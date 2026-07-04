@@ -98,7 +98,7 @@ class ExtractedFact(BaseModel):
     predicate: str | None = None
     object_: str | None = Field(default=None, alias="object")
     confidence: float = Field(default=1.0, ge=0.0, le=1.0)
-    importance: float = Field(default=0.5, ge=0.0, le=1.0)
+    importance: float | None = Field(default=None, ge=0.0, le=1.0)
 
 
 class ExtractedEntity(BaseModel):
@@ -340,6 +340,10 @@ class ConsolidationService:
                 return Operation.NOOP, existing  # same triple -> already known
             # Contradiction: same subject+predicate, different object.
             if fact.confidence >= self._cfg.conflict_confidence:
+                # None preserves the prior version's base importance through
+                # `correct` — an extraction that omits importance (e.g. the
+                # llama3.1 failover model) must not flatten an LLM-assessed
+                # base down to the ADD-path default on a contradiction update.
                 updated = await self._memories.correct(
                     tenant_id,
                     existing.id,
@@ -355,7 +359,7 @@ class ConsolidationService:
                 agent_id,
                 fact.content.strip(),
                 type=MemoryType.SEMANTIC,
-                importance=fact.importance,
+                importance=fact.importance if fact.importance is not None else 0.5,
                 confidence=fact.confidence,
                 tags=[NEEDS_REVIEW_TAG],
                 source_refs=source_refs,
@@ -373,7 +377,7 @@ class ConsolidationService:
             agent_id,
             fact.content.strip(),
             type=MemoryType.SEMANTIC,
-            importance=fact.importance,
+            importance=fact.importance if fact.importance is not None else 0.5,
             confidence=fact.confidence,
             source_refs=source_refs,
             metadata=metadata,

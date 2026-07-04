@@ -208,6 +208,39 @@ async def test_confident_contradiction_supersedes() -> None:
     assert old is not None and old.status is MemoryStatus.SUPERSEDED
 
 
+async def test_contradiction_update_preserves_base_importance_when_omitted() -> None:
+    """A confident contradiction whose new fact omits `importance` must not
+    flatten the existing record's LLM-assessed base down to the ADD-path
+    default (0.5) — `correct(importance=None)` preserves it (final review)."""
+    env = _Env([
+        _extraction(facts=[{
+            "content": "Chinmay lives in Delhi.",
+            "subject": "Chinmay", "predicate": "lives_in", "object": "Delhi",
+            "importance": 0.9, "confidence": 0.9,
+        }]),
+        _extraction(facts=[{
+            "content": "Chinmay lives in Bangalore.",
+            "subject": "Chinmay", "predicate": "lives_in", "object": "Bangalore",
+            "confidence": 0.9,  # no importance key
+        }]),
+        _extraction(),
+    ])
+    await env.service.consolidate_session(
+        TENANT, await env.session_with_turns("I live in Delhi.")
+    )
+    report = await env.service.consolidate_session(
+        TENANT, await env.session_with_turns("I moved, I live in Bangalore now.")
+    )
+    assert report.updated == 1 and report.added == 0
+
+    active = await env.store.list_records(TENANT, AGENT, type=MemoryType.SEMANTIC)
+    assert len(active) == 1
+    assert "Bangalore" in active[0].content
+    assert active[0].status is MemoryStatus.ACTIVE
+    assert active[0].supersedes is not None
+    assert active[0].importance == 0.9  # preserved, not reset to 0.5
+
+
 async def test_low_confidence_contradiction_flags_needs_review() -> None:
     env = _Env([
         _extraction(facts=[{
@@ -236,6 +269,9 @@ async def test_low_confidence_contradiction_flags_needs_review() -> None:
     original = next(r for r in active if NEEDS_REVIEW_TAG not in r.tags)
     assert flagged.metadata["conflicts_with"] == original.id
     assert "Delhi" in original.content  # the original was NOT overwritten
+    # The flagged candidate's fact omitted `importance` -> ADD-path default.
+    assert flagged.importance == 0.5
+    assert flagged.confidence == 0.4
 
 
 async def test_invalidation_soft_deletes_matching_memory() -> None:

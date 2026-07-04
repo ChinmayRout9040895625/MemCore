@@ -55,4 +55,13 @@ stored records. Design in ADR-0015.
   carried over from Phase 5.
 
 ## Self-review
-Issues found and fixed before sign-off are listed in the delivery message.
+The final whole-branch review found one Important issue: `_apply_fact`'s
+contradiction UPDATE path passed the extracted fact's `importance`
+unconditionally to `MemoryService.correct`, so an extraction that omitted
+`importance` (typical of the llama3.1 failover model) rewrote an
+LLM-assessed base (e.g. 0.9) down to the ADD-path default (0.5) instead of
+preserving it. Fixed in a follow-up commit: `ExtractedFact.importance` is now
+`float | None` (default `None`); the UPDATE path passes it through unchanged
+so `correct(importance=None)` preserves the superseded record's base, while
+ADD/needs_review substitute 0.5 when it is `None`. Remaining minor findings
+from the review were triaged acceptable as-is.
