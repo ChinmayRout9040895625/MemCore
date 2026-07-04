@@ -105,6 +105,7 @@ def build_state(settings: Settings) -> AppState:
             collection=collection,
             graph=graph,
             settings=settings.retrieval,
+            importance_settings=settings.importance,
         ),
         consolidation=consolidation,
         workflow=workflow,

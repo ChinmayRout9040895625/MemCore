@@ -12,11 +12,14 @@ Pipeline (hot path — no LLM, ADR-0001):
 3. Scoring: ``relevance = (1-alpha)*vector + alpha*lexical`` (token overlap),
    then ``final = relevance^wr * recency^wt * importance^wi``. Exponent weights
    mean ``w=0`` neutralizes a factor and ``w>1`` sharpens it; recency uses
-   ``exp(-age/tau)`` with per-type time constants.
+   ``exp(-age/tau)`` with per-type time constants; importance is the
+   usage-reinforced *effective* importance (``effective_importance``, Phase 6)
+   — base importance boosted toward 1.0 by access count, never rewritten.
 4. Optional rerank: lexical re-sort of the top window — a deliberate placeholder
    slot for a cross-encoder/LLM reranker (budget-gated, off the default path).
 5. Reinforcement: retrieved memories get their access stats bumped, feeding
-   importance/decay (retrieval strengthens memory).
+   importance/decay (retrieval strengthens memory) — the loop is now closed:
+   this recall's boost raises the next recall's effective importance.
 
 The metadata store stays authoritative: hits whose record is missing or not
 active are dropped (index lag never resurrects deleted memories).
@@ -30,13 +33,14 @@ from collections import OrderedDict
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 
-from memcore.config import RetrievalSettings
+from memcore.config import ImportanceSettings, RetrievalSettings
 from memcore.domain.enums import MemoryStatus, MemoryType
 from memcore.domain.models import MemoryRecord, ScoredMemory, utcnow
 from memcore.ports.embedding_provider import EmbeddingProvider
 from memcore.ports.graph_store import GraphStore
 from memcore.ports.memory_store import MemoryStore
 from memcore.ports.vector_store import VectorStore
+from memcore.services.importance import effective_importance
 
 _TOKEN = re.compile(r"[a-z0-9]+")
 _EMBED_CACHE_MAX = 1024
@@ -79,6 +83,7 @@ class RecallService:
         collection: str,
         graph: GraphStore | None = None,
         settings: RetrievalSettings | None = None,
+        importance_settings: ImportanceSettings | None = None,
     ) -> None:
         self._store = store
         self._vectors = vectors
@@ -86,6 +91,7 @@ class RecallService:
         self._collection = collection
         self._graph = graph
         self._cfg = settings or RetrievalSettings()
+        self._imp = importance_settings or ImportanceSettings()
         self._embed_cache: OrderedDict[str, list[float]] = OrderedDict()
 
     async def recall(
@@ -149,7 +155,7 @@ class RecallService:
                 relevance = max(relevance, cfg.graph_relevance_floor)
 
             recency = self._recency(record, now)
-            importance = record.importance
+            importance = effective_importance(record, settings=self._imp)
             final = (
                 relevance**w.relevance
                 * recency**w.recency

@@ -215,6 +215,47 @@ async def test_query_embedding_is_cached() -> None:
     assert calls == 1  # second query served from cache
 
 
+# -- importance reinforcement (Phase 6 calibration) ----------------------------
+async def test_reinforced_memory_outranks_identical_cold_one() -> None:
+    env = _Env()
+    cold = await env.seed("chinmay uses the vim editor", importance=0.5)
+    hot = await env.seed("chinmay uses the vim editor", importance=0.5)
+    for _ in range(10):
+        await env.store.reinforce(TENANT, [hot.id], utcnow())
+
+    results = await env.recall.recall(TENANT, AGENT, "which editor does chinmay use")
+    ranked = [s.memory.id for s in results]
+    assert ranked.index(hot.id) < ranked.index(cold.id)
+
+    by_id = {s.memory.id: s for s in results}
+    assert by_id[hot.id].importance > by_id[cold.id].importance
+
+
+async def test_unaccessed_importance_is_exactly_base() -> None:
+    # Zero accesses => reinforcement term is zero, not a constant offset.
+    env = _Env()
+    record = await env.seed("rust ownership rules", importance=0.42)
+    results = await env.recall.recall(TENANT, AGENT, "rust ownership")
+    assert results[0].memory.id == record.id
+    assert results[0].importance == pytest.approx(0.42)
+
+
+async def test_importance_weight_zero_neutralizes_reinforcement() -> None:
+    # The x**0 == 1 neutralization contract must hold for effective importance.
+    env = _Env()
+    cold = await env.seed("chinmay uses the vim editor", importance=0.5)
+    hot = await env.seed("chinmay uses the vim editor", importance=0.5)
+    for _ in range(10):
+        await env.store.reinforce(TENANT, [hot.id], utcnow())
+
+    results = await env.recall.recall(
+        TENANT, AGENT, "which editor does chinmay use",
+        weights=ScoreWeights(importance=0.0),
+    )
+    by_id = {s.memory.id: s for s in results}
+    assert by_id[hot.id].final == pytest.approx(by_id[cold.id].final, rel=1e-6)
+
+
 # -- context assembly -------------------------------------------------------------
 def _scored(content: str, final: float = 0.5) -> ScoredMemory:
     return ScoredMemory(
