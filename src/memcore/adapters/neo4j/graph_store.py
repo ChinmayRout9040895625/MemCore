@@ -180,3 +180,10 @@ class Neo4jGraphStore(GraphStore):
 
     async def close(self) -> None:
         await self._driver.close()
+
+    async def ping(self) -> None:
+        """Cheap liveness probe: the driver's own connectivity check."""
+        try:
+            await self._driver.verify_connectivity()
+        except Exception as exc:  # pragma: no cover - network path
+            raise StorageError(f"neo4j ping failed: {exc}") from exc

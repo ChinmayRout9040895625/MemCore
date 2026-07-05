@@ -2,7 +2,8 @@
 
 from __future__ import annotations
 
-from fastapi import APIRouter, Query
+from fastapi import APIRouter, Query, Request
+from fastapi.responses import JSONResponse, Response
 
 from memcore import __version__
 from memcore.api.deps import StateDep, TenantDep
@@ -20,6 +21,8 @@ from memcore.api.schemas import (
     SessionResponse,
     VersionsResponse,
 )
+from memcore.exceptions import ConfigurationError
+from memcore.observability import metrics as obs_metrics
 from memcore.services import ScoreWeights, assemble_context
 
 router = APIRouter(prefix="/v1")
@@ -29,6 +32,50 @@ health_router = APIRouter()
 @health_router.get("/health", response_model=HealthResponse)
 async def health() -> HealthResponse:
     return HealthResponse(status="ok", version=__version__)
+
+
+@health_router.get("/metrics", include_in_schema=False)
+async def metrics_endpoint() -> Response:
+    try:
+        payload, content_type = obs_metrics.render()
+    except ConfigurationError as exc:
+        return JSONResponse(
+            status_code=501,
+            media_type="application/problem+json",
+            content={
+                "type": "https://memcore.dev/errors/ConfigurationError",
+                "title": "ConfigurationError",
+                "status": 501,
+                "detail": str(exc),
+                "instance": "/metrics",
+            },
+        )
+    return Response(content=payload, media_type=content_type)
+
+
+@health_router.get("/ready")
+async def ready(request: Request) -> JSONResponse:
+    components: dict[str, str] = {}
+    degraded = False
+    for name, component in request.app.state.memcore_probes.items():
+        ping = getattr(component, "ping", None)
+        if not callable(ping):
+            components[name] = "ok"
+            continue
+        try:
+            await ping()
+            components[name] = "ok"
+        except Exception as exc:  # any component failure means "not ready"
+            components[name] = f"error: {exc}"
+            degraded = True
+    status = 503 if degraded else 200
+    return JSONResponse(
+        status_code=status,
+        content={
+            "status": "degraded" if degraded else "ready",
+            "components": components,
+        },
+    )
 
 
 # -- sessions -----------------------------------------------------------------

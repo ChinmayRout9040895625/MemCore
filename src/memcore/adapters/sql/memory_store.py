@@ -15,7 +15,7 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Any
 
-from sqlalchemy import JSON, Float, Integer, String, Text, select, update
+from sqlalchemy import JSON, Float, Integer, String, Text, select, text, update
 from sqlalchemy.ext.asyncio import AsyncEngine, async_sessionmaker, create_async_engine
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 from sqlalchemy.pool import StaticPool
@@ -137,6 +137,11 @@ class SqlMemoryStore(MemoryStore):
 
     async def close(self) -> None:
         await self._engine.dispose()
+
+    async def ping(self) -> None:
+        """Cheap liveness probe: one round-trip (`SELECT 1`)."""
+        async with self._sessions() as db:
+            await db.execute(text("SELECT 1"))
 
     # -- records -------------------------------------------------------------
     async def add(self, record: MemoryRecord) -> None:

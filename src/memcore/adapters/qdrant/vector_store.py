@@ -119,3 +119,10 @@ class QdrantVectorStore(VectorStore):
 
     async def close(self) -> None:
         await self._client.close()
+
+    async def ping(self) -> None:
+        """Cheap liveness probe: list collections (cheapest client call)."""
+        try:
+            await self._client.get_collections()
+        except Exception as exc:  # pragma: no cover - network path
+            raise StorageError(f"qdrant ping failed: {exc}") from exc

@@ -24,6 +24,7 @@ from memcore.adapters.factory import (
 )
 from memcore.adapters.inmemory import ImmediateWorkflowEngine, InMemoryObjectStore
 from memcore.api.deps import AppState
+from memcore.api.middleware import ObservabilityMiddleware
 from memcore.api.routes import health_router, router
 from memcore.config import Settings, load_settings
 from memcore.exceptions import (
@@ -146,6 +147,13 @@ def create_app(
         lifespan=lifespan,
     )
     app.state.memcore = app_state
+    app.state.memcore_probes = {
+        "store": app_state.store,
+        "vectors": app_state.vectors,
+        "graph": app_state.graph,
+        "working": app_state.working,
+    }
+    app.add_middleware(ObservabilityMiddleware)
     app.include_router(health_router)
     app.include_router(router)
 

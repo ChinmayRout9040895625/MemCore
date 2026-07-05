@@ -34,6 +34,7 @@ async def test_qdrant_vector_store_contract() -> None:
         await store.close()
         pytest.skip(f"Qdrant not reachable at {url}")
     try:
+        await store.ping()
         await check_vector_store_contract(store)
     finally:
         await store.close()
@@ -50,6 +51,7 @@ async def test_redis_working_memory_contract() -> None:
         await store.close()
         pytest.skip(f"Redis not reachable at {url}")
     try:
+        await store.ping()
         await check_working_memory_contract(store)
     finally:
         await store.close()
@@ -68,6 +70,7 @@ async def test_neo4j_graph_store_contract() -> None:
         await store.close()
         pytest.skip(f"Neo4j not reachable at {url}")
     try:
+        await store.ping()
         await check_graph_store_contract(store)
     finally:
         await store.close()

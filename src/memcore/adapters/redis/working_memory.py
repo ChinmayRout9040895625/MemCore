@@ -87,3 +87,10 @@ class RedisWorkingMemory(WorkingMemory):
 
     async def close(self) -> None:
         await self._redis.aclose()
+
+    async def ping(self) -> None:
+        """Cheap liveness probe: the client's own PING command."""
+        try:
+            await self._redis.ping()
+        except Exception as exc:  # pragma: no cover - network path
+            raise StorageError(f"redis ping failed: {exc}") from exc
