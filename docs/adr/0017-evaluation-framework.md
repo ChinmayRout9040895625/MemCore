@@ -21,7 +21,7 @@ default, a sign error in decay) could pass every unit test and still ship.
 
 3. **Binary-relevance metrics** — `recall@k`, `MRR`, `nDCG@k`
    (`evaluation/metrics.py`) — pure functions, each id's gain counted once
-   (ADR-0017 review fix, commit `497df6e`: duplicate ids in `ranked` no
+   (Phase 8 Task-2 review fix (`497df6e`): duplicate ids in `ranked` no
    longer double-count, keeping nDCG bounded in [0, 1] even for degenerate
    inputs).
 

@@ -30,6 +30,11 @@ class AblationOutcome(BaseModel):
 
 
 class AgePoint(BaseModel):
+    """Age point in longitudinal curve.
+
+    mean_final embeds real recency factors and may vary across runs at ~1e-9;
+    the reproducibility guarantee covers rank-derived metrics only.
+    """
     model_config = ConfigDict(extra="forbid")
 
     age_days: float
@@ -67,6 +72,7 @@ async def reinforcement_ablation(
                                importance=config.importance)
         wins = ties = losses = 0
         for word in _PAIR_WORDS[:pairs]:
+            # k covers pair set; boosts >> pairs, so reinforcing all is fine.
             results = await recall.recall(
                 harness.tenant, harness.agent,
                 f"what concerns the {word} project",

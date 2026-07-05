@@ -7,7 +7,7 @@ import math
 
 def recall_at_k(relevant: set[str], ranked: list[str], k: int) -> float:
     """Fraction of ``relevant`` ids present in the top ``k`` of ``ranked``."""
-    if not relevant:
+    if not relevant or k <= 0:
         return 0.0
     return len(relevant & set(ranked[:k])) / len(relevant)
 
@@ -28,7 +28,7 @@ def ndcg_at_k(relevant: set[str], ranked: list[str], k: int) -> float:
     Duplicate ids in ``ranked`` gain only on their first occurrence, so the
     result stays bounded [0, 1] even for degenerate inputs.
     """
-    if not relevant:
+    if not relevant or k <= 0:
         return 0.0
     seen: set[str] = set()
     dcg = 0.0

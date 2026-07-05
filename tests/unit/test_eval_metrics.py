@@ -20,6 +20,10 @@ class TestRecallAtK:
     def test_empty_relevant_is_zero(self) -> None:
         assert recall_at_k(set(), ["a"], k=5) == 0.0
 
+    def test_non_positive_k_is_zero(self) -> None:
+        assert recall_at_k({"a"}, ["a"], k=0) == 0.0
+        assert recall_at_k({"a"}, ["a"], k=-1) == 0.0
+
 
 class TestMrr:
     def test_first_position(self) -> None:
@@ -58,3 +62,7 @@ class TestNdcgAtK:
 
     def test_duplicate_ids_gain_once_and_stay_bounded(self) -> None:
         assert ndcg_at_k({"a"}, ["a", "a", "a"], k=3) == pytest.approx(1.0)
+
+    def test_non_positive_k_is_zero(self) -> None:
+        assert ndcg_at_k({"a"}, ["a"], k=0) == 0.0
+        assert ndcg_at_k({"a"}, ["a"], k=-1) == 0.0

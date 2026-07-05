@@ -76,7 +76,7 @@ only by consolidation, not the public API).
   scans its oldest records, and their stored `decay_score` stays stale at
   1.0 indefinitely. The fix is an oldest-first or paginated scan (requires a
   port change); deferred to the deployment phase alongside tenant
-  enumeration (ADR-0016 point 5).
+  enumeration (ADR-0016 point 5). (Resolved in Phase 8 — the sweep now scans oldest-first.)
 - Tenant enumeration + a Celery-beat recurring schedule — deployment phase;
   MemCore has no tenant-enumeration facility today, so "sweep every tenant
   periodically" cannot be wired up yet.
