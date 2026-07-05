@@ -53,8 +53,8 @@ against the same in-process ASGI app.
 `docs/sdk-quickstart.md` (install, async example, sync example, errors and
 retries).
 
-## Gate (2026-07-05)
-- pytest: **187 passed, 3 integration-skipped** · coverage **93.70%**
+## Gate (2026-07-05, incl. final-review fix commit)
+- pytest: **189 passed, 3 integration-skipped** · coverage **93.96%**
 - ruff: clean
 - mypy (strict, 99 files): clean
 

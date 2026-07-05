@@ -8,8 +8,8 @@
 - **Phase 10 (Observability & monitoring): NOT STARTED — awaiting user approval.**
 - Phases 1–9 complete and committed (see `git log --oneline`).
 
-## Last gate (Phase 9, 2026-07-05)
-- pytest: **187 passed, 3 integration-skipped** · coverage **93.70%**
+## Last gate (Phase 9, 2026-07-05, incl. final-review fix commit)
+- pytest: **189 passed, 3 integration-skipped** · coverage **93.96%**
 - ruff: clean · mypy (strict, 99 files): clean
 - `memcore.sdk`: `AsyncMemCoreClient` (full v1 surface) + `MemCoreClient`
   (sync mirror, signature-parity guarded); GET-only retries with
