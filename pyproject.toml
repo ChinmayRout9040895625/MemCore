@@ -37,6 +37,7 @@ scheduler = ["celery>=5.4"]
 embeddings = ["sentence-transformers>=3.0"]
 llm = ["anthropic>=0.34", "openai>=1.40", "httpx>=0.27"]
 api = ["fastapi>=0.111", "uvicorn>=0.30"]
+sdk = ["httpx>=0.27"]
 sql = ["sqlalchemy[asyncio]>=2.0.30", "aiosqlite>=0.20"]
 postgres = ["sqlalchemy[asyncio]>=2.0.30", "asyncpg>=0.29"]
 dev = [
@@ -80,6 +81,8 @@ ignore = ["PLR2004", "PLR0913"]
 "src/memcore/adapters/llm/*" = ["PLC0415"]
 "src/memcore/adapters/celery/*" = ["PLC0415"]
 "src/memcore/workers/*" = ["PLC0415"]
+# The SDK lazy-imports httpx so `pip install memcore` works without it.
+"src/memcore/sdk/*" = ["PLC0415"]
 # Contract checks are single-narrative specs; statement-count limits don't apply.
 "src/memcore/testing/contracts.py" = ["PLR0915"]
 
