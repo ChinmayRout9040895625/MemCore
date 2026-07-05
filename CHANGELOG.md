@@ -5,6 +5,17 @@ Format follows [Keep a Changelog](https://keepachangelog.com/); versions follow 
 
 ## [Unreleased]
 
+### Added — Phase 9: Python SDK
+- `memcore.sdk`: typed async (`AsyncMemCoreClient`) + sync (`MemCoreClient`)
+  clients covering the full v1 API (sessions, memories, recall, consolidate,
+  jobs, decay), validating responses into domain models — ADR-0018.
+- Typed errors from problem+json (`AuthError`/`NotFoundError`/`ConflictError`
+  /`ValidationAPIError`/`ServerError`), `TransportError`, `JobTimeout`.
+- GET-only automatic retries ({429,502,503,504} + transport failures),
+  deterministic exponential backoff, injectable sleep; `wait_for_job` polling.
+- New install extra: `pip install 'memcore[sdk]'` (pydantic + httpx only);
+  sync/async surface parity enforced by test; `docs/sdk-quickstart.md`.
+
 ### Added — Phase 8: Evaluation framework & baselines
 - `memcore.evaluation`: deterministic offline harness — binary-relevance
   metrics (recall@k, MRR, nDCG@k), token-overlap dataset `synthetic-v1`,

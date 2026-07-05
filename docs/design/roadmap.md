@@ -13,8 +13,8 @@ self-review → fix → approval gate. Never skip tests, docs, or ADR updates.
 | 6 | Importance scoring | ✅ Complete |
 | 7 | Memory decay & pruning | ✅ Complete |
 | 8 | Evaluation framework & baselines | ✅ Complete |
-| 9 | Python SDK | ⏳ Next |
-| 10 | Observability & monitoring | Planned |
+| 9 | Python SDK | ✅ Complete |
+| 10 | Observability & monitoring | ⏳ Next |
 | 11 | Deployment (Docker, K8s, CI/CD) | Planned |
 | 12 | Documentation & examples | Planned |
 
