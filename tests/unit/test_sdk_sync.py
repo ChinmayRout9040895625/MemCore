@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import inspect
+from typing import Any
 
 import httpx
 import pytest
@@ -89,3 +90,69 @@ def test_post_never_retried_and_maps_errors() -> None:
     with pytest.raises(NotFoundError):
         client.get_memory("missing")
     client.close()
+
+
+def test_full_surface_round_trip() -> None:
+    """Every remaining public method routes, parses, and returns typed models."""
+    session = {"id": "s1", "tenant_id": "t", "agent_id": "a1"}
+    memory = {
+        "id": "m1", "tenant_id": "t", "agent_id": "a1", "type": "semantic",
+        "content": "Bruno is a beagle.",
+    }
+    job = {"job_id": "j1", "state": "succeeded"}
+
+    def handler(request: httpx.Request) -> httpx.Response:  # noqa: PLR0912
+        path = request.url.path
+        method = request.method
+        status: int = 200
+        data: dict[str, Any] | None = None
+        if path == "/health":
+            data = {"status": "ok", "version": "x"}
+        elif path == "/v1/sessions" and method == "POST":
+            status, data = 201, {"session": session}
+        elif path.startswith("/v1/sessions/") and path.endswith("/messages"):
+            status, data = 202, {"session": {**session, "turn_count": 1}}
+        elif path.startswith("/v1/sessions/") and path.endswith("/close"):
+            data = {"session": {**session, "closed": True}}
+        elif path.startswith("/v1/sessions/"):
+            data = {"session": session}
+        elif path.endswith("/versions"):
+            data = {"versions": [memory]}
+        elif path.startswith("/v1/memories/") and method == "PATCH":
+            data = {"memory": {**memory, "version": 2}}
+        elif path.startswith("/v1/memories/") and method == "DELETE":
+            status = 204
+        elif path.startswith("/v1/memories/"):
+            data = {"memory": memory}
+        elif path == "/v1/recall":
+            data = {
+                "results": [{"memory": memory, "relevance": 0.9, "recency": 1.0,
+                             "importance": 0.5, "final": 0.45}],
+                "context": "ctx", "context_tokens": 3,
+            }
+        elif path in ("/v1/consolidate", "/v1/decay"):
+            status, data = 202, job
+        elif path.startswith("/v1/jobs/"):
+            data = job
+        else:
+            raise AssertionError(f"unrouted: {method} {path}")
+        return httpx.Response(status, json=data) if data is not None else httpx.Response(status)
+
+    with MemCoreClient(
+        "http://sdk.test", API_KEY, transport=httpx.MockTransport(handler)
+    ) as client:
+        assert client.open_session("a1").id == "s1"
+        assert client.get_session("s1").id == "s1"
+        assert client.append_message("s1", "user", "hi").turn_count == 1
+        assert client.close_session("s1").closed
+        assert client.memory_versions("m1")[0].id == "m1"
+        assert client.correct_memory("m1", content="Bruno is a beagle.").version == 2
+        client.forget_memory("m1")
+        outcome = client.recall("a1", "dog", weights={"importance": 2.0},
+                                graph_expand=False)
+        assert outcome.results[0].memory.id == "m1"
+        assert outcome.context == "ctx"
+        assert client.consolidate("s1").job_id == "j1"
+        assert client.job("j1").state == "succeeded"
+        assert client.run_decay().done
+        assert client.wait_for_job("j1").state == "succeeded"
