@@ -7,6 +7,7 @@ services, ports, adapters, or the server app.
 """
 
 from memcore.sdk.async_client import AsyncMemCoreClient
+from memcore.sdk.client import MemCoreClient
 from memcore.sdk.exceptions import (
     APIError,
     AuthError,
@@ -27,6 +28,7 @@ __all__ = [
     "ConflictError",
     "Job",
     "JobTimeout",
+    "MemCoreClient",
     "MemCoreClientError",
     "NotFoundError",
     "RecallOutcome",
