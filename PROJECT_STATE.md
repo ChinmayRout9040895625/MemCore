@@ -8,8 +8,8 @@
 - **Phase 9 (Python SDK): NOT STARTED — awaiting user approval.**
 - Phases 1–8 complete and committed (see `git log --oneline`).
 
-## Last gate (Phase 8, 2026-07-05)
-- pytest: **159 passed, 3 integration-skipped** · coverage **94.52%**
+## Last gate (Phase 8, 2026-07-05, incl. review-polish commit)
+- pytest: **161 passed, 3 integration-skipped** · coverage **94.52%**
 - ruff: clean · mypy (strict, 90 files): clean
 - Baselines (`python -m memcore.evaluation`, synthetic-v1): hybrid beats
   naive-vector on recall@5 (1.000 vs 0.875), MRR (0.771 vs 0.604), nDCG@5

@@ -97,8 +97,8 @@ days from decayed-but-unswept records, and a hard collapse to 0.000 once a
 sweep prunes records that fail every ADR-0016 rail past the ~90-day horizon —
 this is the decay/pruning contract working as designed, not a defect.
 
-## Gate (2026-07-05)
-- pytest: **159 passed, 3 integration-skipped** · coverage **94.52%**
+## Gate (2026-07-05, incl. review-polish commit)
+- pytest: **161 passed, 3 integration-skipped** · coverage **94.52%**
 - ruff: clean
 - mypy (strict, 90 files): clean
 
