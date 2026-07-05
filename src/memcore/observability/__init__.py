@@ -6,6 +6,7 @@ without it. This package must never import services/ports/adapters/api —
 the API layer consumes it, not the other way around.
 """
 
+from memcore.observability import metrics
 from memcore.observability.context import (
     bind_request_id,
     get_request_id,
@@ -16,6 +17,7 @@ from memcore.observability.context import (
 __all__ = [
     "bind_request_id",
     "get_request_id",
+    "metrics",
     "new_request_id",
     "reset_request_id",
 ]
