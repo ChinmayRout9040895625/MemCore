@@ -10,6 +10,25 @@ build in-memory adapters directly, and nothing inside ``services``/``domain``
 /``ports``/``adapters`` may import it.
 """
 
+from memcore.evaluation.datasets import EvalCase, EvalDataset, EvalRecord, synthetic_dataset
+from memcore.evaluation.harness import (
+    STANDARD_CONFIGS,
+    ConfigResult,
+    EvalConfig,
+    EvalHarness,
+)
 from memcore.evaluation.metrics import mrr, ndcg_at_k, recall_at_k
 
-__all__ = ["mrr", "ndcg_at_k", "recall_at_k"]
+__all__ = [
+    "STANDARD_CONFIGS",
+    "ConfigResult",
+    "EvalCase",
+    "EvalConfig",
+    "EvalDataset",
+    "EvalHarness",
+    "EvalRecord",
+    "mrr",
+    "ndcg_at_k",
+    "recall_at_k",
+    "synthetic_dataset",
+]
