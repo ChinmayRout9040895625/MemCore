@@ -12,6 +12,20 @@ import logging
 import sys
 from typing import Any
 
+from memcore.observability.context import get_request_id
+
+
+class _ContextFilter(logging.Filter):
+    """Stamp the correlation id onto every record (``"-"`` when unbound).
+
+    An explicit ``extra={"request_id": ...}`` from the caller wins.
+    """
+
+    def filter(self, record: logging.LogRecord) -> bool:
+        if not hasattr(record, "request_id"):
+            record.request_id = get_request_id() or "-"
+        return True
+
 
 class _JsonFormatter(logging.Formatter):
     """Minimal, dependency-free JSON log formatter."""
@@ -43,11 +57,14 @@ def configure_logging(level: str = "INFO", *, json_output: bool = False) -> None
         root.removeHandler(handler)
 
     handler = logging.StreamHandler(sys.stdout)
+    handler.addFilter(_ContextFilter())
     if json_output:
         handler.setFormatter(_JsonFormatter())
     else:
         handler.setFormatter(
-            logging.Formatter("%(asctime)s %(levelname)-7s %(name)s: %(message)s")
+            logging.Formatter(
+                "%(asctime)s %(levelname)-7s %(name)s [%(request_id)s]: %(message)s"
+            )
         )
     root.addHandler(handler)
 
