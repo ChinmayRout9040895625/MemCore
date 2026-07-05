@@ -22,5 +22,6 @@ supersedes the old one.
 | [0014](0014-consolidation-design.md) | Consolidation agent design | Accepted |
 | [0015](0015-importance-scoring.md) | Importance scoring: LLM-assessed base + read-time reinforcement/decay, pinning | Accepted |
 | [0016](0016-decay-and-pruning.md) | Decay & pruning: per-tenant sweep, snapshot via set_decay, rail-guarded soft-delete prune | Accepted |
+| [0017](0017-evaluation-framework.md) | Evaluation framework: deterministic offline harness, baseline + ablations | Accepted |
 
 > ADR numbering here is renumbered from the design package (§3) for a clean log.

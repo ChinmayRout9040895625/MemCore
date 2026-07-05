@@ -5,6 +5,20 @@ Format follows [Keep a Changelog](https://keepachangelog.com/); versions follow 
 
 ## [Unreleased]
 
+### Added — Phase 8: Evaluation framework & baselines
+- `memcore.evaluation`: deterministic offline harness — binary-relevance
+  metrics (recall@k, MRR, nDCG@k), token-overlap dataset `synthetic-v1`,
+  per-config stack isolation, standard configs (naive-vector baseline,
+  hybrid, no-importance, no-recency) — ADR-0017.
+- Scenario regression guards: reinforcement ablation (reinforced twin wins
+  under hybrid, ties under no-importance) and longitudinal decay curve
+  (sweep collapses recall past the prune horizon).
+- `python -m memcore.evaluation` prints the reproducible baseline report
+  (recorded in docs/design/phase-08.md).
+- Phase 7 backlog closed: decay sweep scans oldest-first (convergence for
+  tenants above `scan_limit`; ADR-0016 amended) and `set_decay` clamps
+  scores to [0, 1]; `list_records` gained `oldest_first`.
+
 ### Added — Phase 7: Memory decay & pruning
 - `MemoryStore.set_decay` (in-place decay snapshots) and tenant-wide
   `list_records(agent_id=None)`; contract kit covers both — ADR-0016.
