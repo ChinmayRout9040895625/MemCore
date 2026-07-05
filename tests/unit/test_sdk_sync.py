@@ -8,7 +8,7 @@ from typing import Any
 import httpx
 import pytest
 
-from memcore.sdk import NotFoundError, ServerError
+from memcore.sdk import NotFoundError, ServerError, TransportError
 from memcore.sdk._shared import RetryPolicy
 from memcore.sdk.async_client import AsyncMemCoreClient
 from memcore.sdk.client import MemCoreClient
@@ -20,12 +20,15 @@ def test_sync_async_public_surface_parity() -> None:
     sync_public = {n for n in dir(MemCoreClient) if not n.startswith("_")}
     async_public = {n for n in dir(AsyncMemCoreClient) if not n.startswith("_")}
     assert sync_public - {"close"} == async_public - {"aclose"}
-    # Same parameters for every shared method (self excluded).
+    # Same parameters (name, kind, default) for every shared method (self
+    # excluded); annotations are excluded since sync/async return types and
+    # Callable[[float], None] vs Callable[[float], Awaitable[None]] legitimately
+    # differ for `sleep`.
     for name in sorted(sync_public - {"close"}):
-        sync_params = list(inspect.signature(getattr(MemCoreClient, name)).parameters)
-        async_params = list(
-            inspect.signature(getattr(AsyncMemCoreClient, name)).parameters
-        )
+        sync_sig = inspect.signature(getattr(MemCoreClient, name))
+        async_sig = inspect.signature(getattr(AsyncMemCoreClient, name))
+        sync_params = [(p.name, p.kind, p.default) for p in sync_sig.parameters.values()]
+        async_params = [(p.name, p.kind, p.default) for p in async_sig.parameters.values()]
         assert sync_params == async_params, f"signature drift on {name!r}"
 
 
@@ -66,6 +69,19 @@ def test_get_retries_then_succeeds_with_recorded_backoff() -> None:
     assert client.health()["status"] == "ok"
     assert calls == 2
     assert slept == [pytest.approx(0.2)]
+    client.close()
+
+
+def test_transport_failure_on_get_retried_then_wrapped() -> None:
+    def handler(request: httpx.Request) -> httpx.Response:
+        raise httpx.ConnectError("boom", request=request)
+
+    client = MemCoreClient(
+        "http://sdk.test", API_KEY,
+        transport=httpx.MockTransport(handler), sleep=lambda s: None,
+    )
+    with pytest.raises(TransportError):
+        client.health()
     client.close()
 
 
@@ -156,3 +172,20 @@ def test_full_surface_round_trip() -> None:
         assert client.job("j1").state == "succeeded"
         assert client.run_decay().done
         assert client.wait_for_job("j1").state == "succeeded"
+
+
+def test_missing_httpx_raises_install_hint(monkeypatch: pytest.MonkeyPatch) -> None:
+    import builtins
+
+    real_import = builtins.__import__
+
+    def fake_import(name: str, *args: Any, **kwargs: Any) -> Any:
+        if name == "httpx":
+            raise ImportError("no httpx")
+        return real_import(name, *args, **kwargs)
+
+    monkeypatch.setattr(builtins, "__import__", fake_import)
+    from memcore.sdk.exceptions import MemCoreClientError
+
+    with pytest.raises(MemCoreClientError, match=r"memcore\[sdk\]"):
+        MemCoreClient("http://x", "k")

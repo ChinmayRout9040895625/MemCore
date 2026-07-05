@@ -6,6 +6,7 @@ via the ``sdk`` extra: ``pip install 'memcore[sdk]'``); it never imports
 services, ports, adapters, or the server app.
 """
 
+from memcore.sdk._shared import RetryPolicy
 from memcore.sdk.async_client import AsyncMemCoreClient
 from memcore.sdk.client import MemCoreClient
 from memcore.sdk.exceptions import (
@@ -32,6 +33,7 @@ __all__ = [
     "MemCoreClientError",
     "NotFoundError",
     "RecallOutcome",
+    "RetryPolicy",
     "ServerError",
     "TransportError",
     "ValidationAPIError",

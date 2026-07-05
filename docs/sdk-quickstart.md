@@ -3,7 +3,7 @@
 ## Install
 
 ```bash
-pip install 'memcore[sdk]'   # pydantic + httpx only; no server dependencies
+pip install 'memcore[sdk]'   # pydantic, pydantic-settings + httpx only; no server dependencies
 ```
 
 ## Async
@@ -32,7 +32,8 @@ async def main() -> None:
 
         # Trigger a decay sweep and wait for it.
         job = await client.run_decay()
-        await client.wait_for_job(job.job_id)
+        job = await client.wait_for_job(job.job_id)
+        print(job.state)  # a failed job returns "failed"; it does not raise
 
 
 asyncio.run(main())
@@ -61,5 +62,10 @@ Every failure is a `memcore.sdk.MemCoreClientError`:
 GET requests are retried automatically on 429/502/503/504 and network errors
 (exponential backoff, 3 attempts by default — tune with
 `RetryPolicy(max_attempts=..., backoff_base=..., backoff_cap=...)` from
-`memcore.sdk._shared`). Writes (POST/PATCH/DELETE) are never retried
+`memcore.sdk`). Writes (POST/PATCH/DELETE) are never retried
 automatically: an ambiguous failure could otherwise duplicate a write.
+A retried 429 that still fails after all attempts surfaces as a plain
+`APIError` — there is no dedicated `RateLimitError` class yet.
+
+Note: `memcore.sdk.NotFoundError`/`ConflictError` are distinct classes from
+the server-side `memcore.exceptions` classes of the same names.

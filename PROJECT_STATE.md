@@ -14,7 +14,8 @@
 - `memcore.sdk`: `AsyncMemCoreClient` (full v1 surface) + `MemCoreClient`
   (sync mirror, signature-parity guarded); GET-only retries with
   deterministic backoff; typed errors from problem+json; `wait_for_job`.
-  New `sdk` extra (`pip install 'memcore[sdk]'`, pydantic + httpx only).
+  New `sdk` extra (`pip install 'memcore[sdk]'`, pydantic, pydantic-settings
+  + httpx only).
   ADR-0018; quickstart in `docs/sdk-quickstart.md`. Full report in
   `docs/design/phase-09.md`.
 

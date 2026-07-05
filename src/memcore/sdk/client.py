@@ -47,7 +47,7 @@ class MemCoreClient:
     ) -> None:
         try:
             import httpx as _httpx
-        except ImportError as exc:  # pragma: no cover - exercised via monkeypatch
+        except ImportError as exc:
             raise MemCoreClientError(_INSTALL_HINT) from exc
         self._retry = retry or RetryPolicy()
         self._sleep = sleep if sleep is not None else time.sleep

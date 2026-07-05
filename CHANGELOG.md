@@ -13,8 +13,9 @@ Format follows [Keep a Changelog](https://keepachangelog.com/); versions follow 
   /`ValidationAPIError`/`ServerError`), `TransportError`, `JobTimeout`.
 - GET-only automatic retries ({429,502,503,504} + transport failures),
   deterministic exponential backoff, injectable sleep; `wait_for_job` polling.
-- New install extra: `pip install 'memcore[sdk]'` (pydantic + httpx only);
-  sync/async surface parity enforced by test; `docs/sdk-quickstart.md`.
+- New install extra: `pip install 'memcore[sdk]'` (pydantic, pydantic-settings
+  + httpx only); sync/async surface parity enforced by test;
+  `docs/sdk-quickstart.md`.
 
 ### Added — Phase 8: Evaluation framework & baselines
 - `memcore.evaluation`: deterministic offline harness — binary-relevance

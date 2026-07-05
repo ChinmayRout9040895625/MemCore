@@ -15,9 +15,9 @@ reimplement the same fragile plumbing.
 1. **The SDK ships inside the `memcore` package as `memcore.sdk`**, a
    consumer layer importing only `memcore.domain` + `httpx` — installable
    server-free via the new `sdk` extra (`pip install 'memcore[sdk]'` pulls
-   pydantic + httpx only, no server/storage dependencies). `httpx` is
-   lazy-imported with the standard install hint, consistent with every other
-   optional-dependency adapter in the codebase.
+   pydantic, pydantic-settings + httpx only, no server/storage dependencies).
+   `httpx` is lazy-imported with the standard install hint, consistent with
+   every other optional-dependency adapter in the codebase.
 
 2. **Async-first `AsyncMemCoreClient`** covers the full v1 surface (sessions,
    memories, recall, consolidate/jobs, decay) with a mechanically mirrored
@@ -68,3 +68,7 @@ reimplement the same fragile plumbing.
 - No pagination helpers yet, since v1 has nothing to paginate; adding them
   once a list-style endpoint ships is additive and does not require
   revisiting this ADR's decisions.
+- SDK response models validate with `extra="forbid"`, so an additive server
+  field breaks older SDK versions until they upgrade — acceptable while the
+  SDK ships in lockstep with the server; revisit (switch to `extra="ignore"`)
+  once they version and release separately.
