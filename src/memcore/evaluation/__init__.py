@@ -18,17 +18,27 @@ from memcore.evaluation.harness import (
     EvalHarness,
 )
 from memcore.evaluation.metrics import mrr, ndcg_at_k, recall_at_k
+from memcore.evaluation.scenarios import (
+    AblationOutcome,
+    AgePoint,
+    longitudinal_curve,
+    reinforcement_ablation,
+)
 
 __all__ = [
     "STANDARD_CONFIGS",
+    "AblationOutcome",
+    "AgePoint",
     "ConfigResult",
     "EvalCase",
     "EvalConfig",
     "EvalDataset",
     "EvalHarness",
     "EvalRecord",
+    "longitudinal_curve",
     "mrr",
     "ndcg_at_k",
     "recall_at_k",
+    "reinforcement_ablation",
     "synthetic_dataset",
 ]
