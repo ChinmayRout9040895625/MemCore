@@ -24,11 +24,13 @@ from memcore.api.schemas import (
     VersionsResponse,
 )
 from memcore.exceptions import ConfigurationError
+from memcore.logging import get_logger
 from memcore.observability import metrics as obs_metrics
 from memcore.services import ScoreWeights, assemble_context
 
 router = APIRouter(prefix="/v1")
 health_router = APIRouter()
+logger = get_logger("api")
 
 
 @health_router.get("/health", response_model=HealthResponse)
@@ -55,7 +57,7 @@ async def metrics_endpoint() -> Response:
     return Response(content=payload, media_type=content_type)
 
 
-@health_router.get("/ready")
+@health_router.get("/ready", include_in_schema=False)
 async def ready(request: Request) -> JSONResponse:
     components: dict[str, str] = {}
     degraded = False
@@ -68,7 +70,10 @@ async def ready(request: Request) -> JSONResponse:
             await ping()
             components[name] = "ok"
         except Exception as exc:  # any component failure means "not ready"
-            components[name] = f"error: {exc}"
+            components[name] = f"error: {type(exc).__name__}"
+            logger.warning(
+                "readiness probe failed", extra={"component": name, "error": str(exc)}
+            )
             degraded = True
     status = 503 if degraded else 200
     return JSONResponse(

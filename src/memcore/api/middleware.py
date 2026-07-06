@@ -3,8 +3,8 @@
 Per HTTP request: bind a correlation id (honoring an incoming
 ``X-Request-ID``), stamp it on the response, emit one structured access-log
 line, and record HTTP metrics labeled by *route template* (bounded
-cardinality; unmatched 404s fall back to the raw path, an accepted
-low-volume exception).
+cardinality; unmatched 404s are labeled with the constant ``"unmatched"``,
+never the raw path, to keep the metric's label cardinality bounded).
 """
 
 from __future__ import annotations
@@ -32,7 +32,10 @@ class ObservabilityMiddleware:
 
         headers = {k.decode("latin-1").lower(): v for k, v in scope.get("headers", [])}
         incoming = headers.get("x-request-id")
-        request_id = incoming.decode("latin-1") if incoming else new_request_id()
+        incoming_id = incoming.decode("latin-1") if incoming else None
+        if incoming_id and len(incoming_id) > 128:
+            incoming_id = None
+        request_id = incoming_id or new_request_id()
         token = bind_request_id(request_id)
         status_holder = {"status": 500}
         started = time.perf_counter()
@@ -52,18 +55,27 @@ class ObservabilityMiddleware:
             # Starlette stamps the matched route onto the scope during
             # routing; template beats raw path for label cardinality.
             route = scope.get("route")
-            template = getattr(route, "path_format", None) or scope.get("path", "?")
+            path_format = getattr(route, "path_format", None)
+            template = path_format or scope.get("path", "?")
+            metric_route = path_format or "unmatched"
+            method = scope.get("method", "?")
+            path = scope.get("path", "?")
             status = status_holder["status"]
-            metrics.observe_http(scope.get("method", "?"), template, status, duration)
+            duration_ms = round(duration * 1000, 2)
+            metrics.observe_http(method, metric_route, status, duration)
             _access_log.info(
-                "request",
+                "request %s %s -> %s in %sms",
+                method,
+                path,
+                status,
+                duration_ms,
                 extra={
                     "request_id": request_id,
-                    "method": scope.get("method", "?"),
-                    "path": scope.get("path", "?"),
+                    "method": method,
+                    "path": path,
                     "route": template,
                     "status": status,
-                    "duration_ms": round(duration * 1000, 2),
+                    "duration_ms": duration_ms,
                 },
             )
             reset_request_id(token)

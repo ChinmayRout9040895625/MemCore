@@ -94,6 +94,13 @@ async def test_incoming_request_id_is_propagated(client: AsyncClient) -> None:
     assert response.headers["x-request-id"] == "caller-rid-7"
 
 
+async def test_overlong_incoming_request_id_is_replaced(client: AsyncClient) -> None:
+    response = await client.get("/health", headers={"X-Request-ID": "x" * 129})
+    rid = response.headers["x-request-id"]
+    assert rid != "x" * 129
+    assert len(rid) == 32
+
+
 async def test_access_log_line_has_fields(
     client: AsyncClient, caplog: pytest.LogCaptureFixture
 ) -> None:
@@ -125,6 +132,18 @@ async def test_metrics_endpoint_uses_route_template(client: AsyncClient) -> None
     assert memory_id not in text  # raw ids never become label values
 
 
+async def test_metrics_unmatched_route_uses_bounded_label(
+    client: AsyncClient,
+) -> None:
+    response = await client.get("/no/such/path")
+    assert response.status_code == 404
+
+    exposition = await client.get("/metrics")
+    text = exposition.text
+    assert 'route="unmatched"' in text
+    assert "/no/such/path" not in text
+
+
 async def test_ready_all_components_ok(client: AsyncClient) -> None:
     response = await client.get("/ready")
     assert response.status_code == 200
@@ -146,7 +165,7 @@ async def test_ready_degrades_to_503_when_a_ping_fails() -> None:
     assert response.status_code == 503
     body = response.json()
     assert body["status"] == "degraded"
-    assert body["components"]["store"].startswith("error:")
+    assert body["components"]["store"] == "error: RuntimeError"
     assert body["components"]["vectors"] == "ok"
 
 

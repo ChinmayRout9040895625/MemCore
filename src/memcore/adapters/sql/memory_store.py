@@ -22,7 +22,7 @@ from sqlalchemy.pool import StaticPool
 
 from memcore.domain.enums import AuditAction, MemoryStatus, MemoryType
 from memcore.domain.models import AuditEvent, MemoryRecord, Session
-from memcore.exceptions import ConflictError, NotFoundError
+from memcore.exceptions import ConflictError, NotFoundError, StorageError
 from memcore.ports.memory_store import MemoryStore
 
 
@@ -140,8 +140,11 @@ class SqlMemoryStore(MemoryStore):
 
     async def ping(self) -> None:
         """Cheap liveness probe: one round-trip (`SELECT 1`)."""
-        async with self._sessions() as db:
-            await db.execute(text("SELECT 1"))
+        try:
+            async with self._sessions() as db:
+                await db.execute(text("SELECT 1"))
+        except Exception as exc:  # pragma: no cover - network path
+            raise StorageError(f"sql ping failed: {exc}") from exc
 
     # -- records -------------------------------------------------------------
     async def add(self, record: MemoryRecord) -> None:
