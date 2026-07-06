@@ -5,6 +5,22 @@ Format follows [Keep a Changelog](https://keepachangelog.com/); versions follow 
 
 ## [Unreleased]
 
+### Added — Phase 10: Observability & monitoring
+- Correlation ids: `memcore.observability.context` contextvar, stamped on
+  every log record (plain + JSON) by a logging filter; ASGI middleware binds
+  one per request (honors/echoes `X-Request-ID`); Celery task shells bind one
+  per job — ADR-0019.
+- Structured access log (`memcore.api.access`): method, path, route, status,
+  duration_ms per request.
+- Prometheus metrics behind the new `observability` extra
+  (`pip install 'memcore[observability]'`): `memcore_http_requests_total`,
+  `memcore_http_request_duration_seconds` (route-template labels),
+  `memcore_operation_duration_seconds` (recall / consolidation /
+  decay_sweep); `GET /metrics` (501 + install hint without the extra).
+- `GET /ready`: per-component readiness via duck-typed adapter `ping()`
+  (SQL `SELECT 1`; Qdrant/Neo4j/Redis driver pings, integration-tested);
+  503 + `"degraded"` when any probe fails.
+
 ### Added — Phase 9: Python SDK
 - `memcore.sdk`: typed async (`AsyncMemCoreClient`) + sync (`MemCoreClient`)
   clients covering the full v1 API (sessions, memories, recall, consolidate,

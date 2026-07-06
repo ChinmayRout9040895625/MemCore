@@ -24,5 +24,6 @@ supersedes the old one.
 | [0016](0016-decay-and-pruning.md) | Decay & pruning: per-tenant sweep, snapshot via set_decay, rail-guarded soft-delete prune | Accepted |
 | [0017](0017-evaluation-framework.md) | Evaluation framework: deterministic offline harness, baseline + ablations | Accepted |
 | [0018](0018-python-sdk.md) | Python SDK: async+sync typed clients, GET-only retries, sdk extra | Accepted |
+| [0019](0019-observability.md) | Observability: correlation ids, Prometheus metrics + /ready probes behind an extra | Accepted |
 
 > ADR numbering here is renumbered from the design package (§3) for a clean log.

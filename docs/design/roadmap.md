@@ -14,8 +14,8 @@ self-review → fix → approval gate. Never skip tests, docs, or ADR updates.
 | 7 | Memory decay & pruning | ✅ Complete |
 | 8 | Evaluation framework & baselines | ✅ Complete |
 | 9 | Python SDK | ✅ Complete |
-| 10 | Observability & monitoring | ⏳ Next |
-| 11 | Deployment (Docker, K8s, CI/CD) | Planned |
+| 10 | Observability & monitoring | ✅ Complete |
+| 11 | Deployment (Docker, K8s, CI/CD) | ⏳ Next |
 | 12 | Documentation & examples | Planned |
 
 See per-phase records under `docs/design/phase-*.md`.
