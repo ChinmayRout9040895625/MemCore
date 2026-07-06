@@ -7,6 +7,7 @@ are mapped to RFC-7807 problem+json responses.
 
 from __future__ import annotations
 
+import time
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
@@ -37,6 +38,7 @@ from memcore.exceptions import (
     ValidationError,
 )
 from memcore.logging import configure_logging, get_logger
+from memcore.observability import metrics as obs_metrics
 from memcore.services import (
     ConsolidationService,
     DecayService,
@@ -90,14 +92,26 @@ def build_state(settings: Settings) -> AppState:
     if isinstance(workflow, ImmediateWorkflowEngine):
 
         async def _consolidate(payload: dict[str, object]) -> None:
-            await consolidation.consolidate_session(
-                str(payload["tenant_id"]), str(payload["session_id"])
-            )
+            started = time.perf_counter()
+            try:
+                await consolidation.consolidate_session(
+                    str(payload["tenant_id"]), str(payload["session_id"])
+                )
+            finally:
+                obs_metrics.observe_operation(
+                    "consolidation", time.perf_counter() - started
+                )
 
         workflow.register("consolidate_session", _consolidate)
 
         async def _decay(payload: dict[str, object]) -> None:
-            await decay.sweep(str(payload["tenant_id"]))
+            started = time.perf_counter()
+            try:
+                await decay.sweep(str(payload["tenant_id"]))
+            finally:
+                obs_metrics.observe_operation(
+                    "decay_sweep", time.perf_counter() - started
+                )
 
         workflow.register("decay_tenant", _decay)
 

@@ -12,12 +12,19 @@ worker process) and run the async pipeline. Task names match what
 from __future__ import annotations
 
 import asyncio
+import time
 from typing import Any
 
 from celery import Celery
 
 from memcore.config import Settings, load_settings
 from memcore.logging import configure_logging, get_logger
+from memcore.observability import metrics as obs_metrics
+from memcore.observability.context import (
+    bind_request_id,
+    new_request_id,
+    reset_request_id,
+)
 
 logger = get_logger("workers")
 
@@ -67,10 +74,18 @@ def _get_consolidation(settings: Settings) -> Any:
 
 @app.task(name="memcore.consolidate_session")
 def consolidate_session(tenant_id: str, session_id: str) -> dict[str, Any]:
-    service = _get_consolidation(_settings)
-    report = asyncio.run(service.consolidate_session(tenant_id, session_id))
-    logger.info("consolidated", extra={"session_id": session_id})
-    return report.model_dump()
+    token = bind_request_id(new_request_id())
+    started = time.perf_counter()
+    try:
+        service = _get_consolidation(_settings)
+        report = asyncio.run(service.consolidate_session(tenant_id, session_id))
+        logger.info("consolidated", extra={"session_id": session_id})
+        return report.model_dump()
+    finally:
+        obs_metrics.observe_operation(
+            "consolidation", time.perf_counter() - started
+        )
+        reset_request_id(token)
 
 
 def _get_decay(settings: Settings) -> Any:
@@ -99,7 +114,13 @@ def _get_decay(settings: Settings) -> Any:
 
 @app.task(name="memcore.decay_tenant")
 def decay_tenant(tenant_id: str) -> dict[str, Any]:
-    service = _get_decay(_settings)
-    report = asyncio.run(service.sweep(tenant_id))
-    logger.info("decay swept", extra={"tenant_id": tenant_id})
-    return report.model_dump()
+    token = bind_request_id(new_request_id())
+    started = time.perf_counter()
+    try:
+        service = _get_decay(_settings)
+        report = asyncio.run(service.sweep(tenant_id))
+        logger.info("decay swept", extra={"tenant_id": tenant_id})
+        return report.model_dump()
+    finally:
+        obs_metrics.observe_operation("decay_sweep", time.perf_counter() - started)
+        reset_request_id(token)

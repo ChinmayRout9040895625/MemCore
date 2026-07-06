@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+import time
 from collections.abc import AsyncIterator
 
 import pytest
@@ -22,8 +23,10 @@ from memcore.adapters.sql import SqlMemoryStore
 from memcore.api.app import create_app
 from memcore.api.deps import AppState
 from memcore.config import Settings
+from memcore.observability import metrics as obs_metrics
 from memcore.services import (
     ConsolidationService,
+    DecayService,
     MemoryService,
     RecallService,
     SessionService,
@@ -40,15 +43,44 @@ def _state(store: InMemoryMemoryStore | None = None) -> AppState:
     embedder = HashingEmbeddingProvider(dimension=64)
     collection = "mem_64"
     memories = MemoryService(store, vectors, embedder, collection=collection)
-    llm = ScriptedLLMProvider(responses=["{}"])
+    llm = ScriptedLLMProvider(responses=["{}"] * 4)
     consolidation = ConsolidationService(store, working, memories, vectors, graph, llm)
+    decay = DecayService(store, memories)
+    workflow = ImmediateWorkflowEngine()
+
+    # Mirrors the instrumented handlers `build_state` registers in
+    # src/memcore/api/app.py — duplicated here (same convention as
+    # test_api.py's `_state()`) since a hand-built AppState bypasses
+    # `build_state` entirely.
+    async def _consolidate(payload: dict[str, object]) -> None:
+        started = time.perf_counter()
+        try:
+            await consolidation.consolidate_session(
+                str(payload["tenant_id"]), str(payload["session_id"])
+            )
+        finally:
+            obs_metrics.observe_operation(
+                "consolidation", time.perf_counter() - started
+            )
+
+    workflow.register("consolidate_session", _consolidate)
+
+    async def _decay(payload: dict[str, object]) -> None:
+        started = time.perf_counter()
+        try:
+            await decay.sweep(str(payload["tenant_id"]))
+        finally:
+            obs_metrics.observe_operation("decay_sweep", time.perf_counter() - started)
+
+    workflow.register("decay_tenant", _decay)
+
     return AppState(
         store=store, working=working, objects=InMemoryObjectStore(),
         vectors=vectors, graph=graph, embedder=embedder,
         sessions=SessionService(store, working, InMemoryObjectStore()),
         memories=memories,
         recall=RecallService(store, vectors, embedder, collection=collection),
-        consolidation=consolidation, workflow=ImmediateWorkflowEngine(),
+        consolidation=consolidation, workflow=workflow,
         api_keys={KEY: "obs-tenant"},
     )
 
@@ -134,3 +166,46 @@ async def test_sql_store_ping() -> None:
     await store.init()
     await store.ping()  # must not raise
     await store.close()
+
+
+async def test_operation_latency_histograms_recorded(client: AsyncClient) -> None:
+    await client.post(
+        "/v1/memories",
+        json={"agent_id": "a1", "content": "the sky is blue"},
+        headers={"X-API-Key": KEY},
+    )
+    recall = await client.post(
+        "/v1/recall",
+        json={"agent_id": "a1", "query": "sky"},
+        headers={"X-API-Key": KEY},
+    )
+    assert recall.status_code == 200
+
+    # decay runs through the immediate engine handler registered in create_app.
+    decay = await client.post("/v1/decay", headers={"X-API-Key": KEY})
+    assert decay.status_code == 202
+
+    text = (await client.get("/metrics")).text
+    assert 'memcore_operation_duration_seconds_count{operation="recall"}' in text
+    assert 'memcore_operation_duration_seconds_count{operation="decay_sweep"}' in text
+
+
+async def test_consolidation_latency_recorded_via_session_close(
+    client: AsyncClient,
+) -> None:
+    opened = await client.post(
+        "/v1/sessions", json={"agent_id": "a1"}, headers={"X-API-Key": KEY}
+    )
+    session_id = opened.json()["session"]["id"]
+    await client.post(
+        f"/v1/sessions/{session_id}/messages",
+        json={"role": "user", "content": "hello"},
+        headers={"X-API-Key": KEY},
+    )
+    closed = await client.post(
+        f"/v1/sessions/{session_id}/close", headers={"X-API-Key": KEY}
+    )
+    assert closed.status_code == 200
+
+    text = (await client.get("/metrics")).text
+    assert 'memcore_operation_duration_seconds_count{operation="consolidation"}' in text

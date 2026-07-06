@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import time
+
 from fastapi import APIRouter, Query, Request
 from fastapi.responses import JSONResponse, Response
 
@@ -213,6 +215,7 @@ async def recall(
             recency=body.weights.recency,
             importance=body.weights.importance,
         )
+    started = time.perf_counter()
     results = await state.recall.recall(
         tenant,
         body.agent_id,
@@ -223,6 +226,7 @@ async def recall(
         graph_expand=body.graph_expand,
         rerank=body.rerank,
     )
+    obs_metrics.observe_operation("recall", time.perf_counter() - started)
     context: str | None = None
     context_tokens: int | None = None
     if body.as_context:
