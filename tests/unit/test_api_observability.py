@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import logging
-import time
 from collections.abc import AsyncIterator
 
 import pytest
@@ -48,29 +47,19 @@ def _state(store: InMemoryMemoryStore | None = None) -> AppState:
     decay = DecayService(store, memories)
     workflow = ImmediateWorkflowEngine()
 
-    # Mirrors the instrumented handlers `build_state` registers in
-    # src/memcore/api/app.py — duplicated here (same convention as
-    # test_api.py's `_state()`) since a hand-built AppState bypasses
-    # `build_state` entirely.
+    # Plain pass-through handlers — just enough wiring for the endpoints under
+    # test to work. The REAL instrumented handlers live in `build_state`
+    # (src/memcore/api/app.py) and are covered directly by
+    # test_build_state_handlers_record_operation_metrics below.
     async def _consolidate(payload: dict[str, object]) -> None:
-        started = time.perf_counter()
-        try:
-            await consolidation.consolidate_session(
-                str(payload["tenant_id"]), str(payload["session_id"])
-            )
-        finally:
-            obs_metrics.observe_operation(
-                "consolidation", time.perf_counter() - started
-            )
+        await consolidation.consolidate_session(
+            str(payload["tenant_id"]), str(payload["session_id"])
+        )
 
     workflow.register("consolidate_session", _consolidate)
 
     async def _decay(payload: dict[str, object]) -> None:
-        started = time.perf_counter()
-        try:
-            await decay.sweep(str(payload["tenant_id"]))
-        finally:
-            obs_metrics.observe_operation("decay_sweep", time.perf_counter() - started)
+        await decay.sweep(str(payload["tenant_id"]))
 
     workflow.register("decay_tenant", _decay)
 
@@ -181,31 +170,52 @@ async def test_operation_latency_histograms_recorded(client: AsyncClient) -> Non
     )
     assert recall.status_code == 200
 
-    # decay runs through the immediate engine handler registered in create_app.
-    decay = await client.post("/v1/decay", headers={"X-API-Key": KEY})
-    assert decay.status_code == 202
-
     text = (await client.get("/metrics")).text
     assert 'memcore_operation_duration_seconds_count{operation="recall"}' in text
-    assert 'memcore_operation_duration_seconds_count{operation="decay_sweep"}' in text
 
 
-async def test_consolidation_latency_recorded_via_session_close(
-    client: AsyncClient,
+async def test_build_state_handlers_record_operation_metrics(
+    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    opened = await client.post(
-        "/v1/sessions", json={"agent_id": "a1"}, headers={"X-API-Key": KEY}
+    """The REAL immediate-engine handlers wired by build_state (not fixture
+    copies) must record consolidation/decay_sweep latency."""
+    from memcore.api.app import build_state
+    from memcore.config import (
+        DatabaseSettings,
+        EmbeddingSettings,
+        GraphSettings,
+        LLMSettings,
+        RedisSettings,
+        SchedulerSettings,
+        Settings,
+        VectorSettings,
     )
-    session_id = opened.json()["session"]["id"]
-    await client.post(
-        f"/v1/sessions/{session_id}/messages",
-        json={"role": "user", "content": "hello"},
-        headers={"X-API-Key": KEY},
-    )
-    closed = await client.post(
-        f"/v1/sessions/{session_id}/close", headers={"X-API-Key": KEY}
-    )
-    assert closed.status_code == 200
 
-    text = (await client.get("/metrics")).text
-    assert 'memcore_operation_duration_seconds_count{operation="consolidation"}' in text
+    observed: list[str] = []
+    real_observe = obs_metrics.observe_operation
+
+    def recorder(operation: str, seconds: float) -> None:
+        observed.append(operation)
+        real_observe(operation, seconds)
+
+    monkeypatch.setattr(obs_metrics, "observe_operation", recorder)
+
+    settings = Settings(
+        _env_file=None,
+        redis=RedisSettings(provider="inmemory"),
+        vector=VectorSettings(provider="inmemory"),
+        graph=GraphSettings(provider="inmemory"),
+        embedding=EmbeddingSettings(provider="inmemory"),
+        llm=LLMSettings(provider="inmemory", fallback_provider=None),
+        scheduler=SchedulerSettings(provider="inmemory"),
+        database=DatabaseSettings(provider="inmemory"),
+    )
+    state = build_state(settings)
+    await state.workflow.enqueue("decay_tenant", {"tenant_id": "t-obs"})
+    # Unknown session -> consolidation returns an empty report, but the
+    # try/finally in the real handler must still record the timing.
+    await state.workflow.enqueue(
+        "consolidate_session", {"tenant_id": "t-obs", "session_id": "missing"}
+    )
+    assert "decay_sweep" in observed
+    assert "consolidation" in observed
