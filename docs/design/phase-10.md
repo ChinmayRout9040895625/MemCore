@@ -25,7 +25,8 @@ import into a module-level cache on a private `CollectorRegistry`;
 `render()` raises `ConfigurationError` with the install hint when absent.
 Metrics: `memcore_http_requests_total` /
 `memcore_http_request_duration_seconds` (labels `method`, `route`, `status` —
-route is the matched path template, raw-path fallback for unmatched 404s) and
+route is the matched path template; unmatched requests are labeled with the
+constant `unmatched`, the raw path appearing only in the access log) and
 `memcore_operation_duration_seconds{operation}` for
 `recall`/`consolidation`/`decay_sweep`.
 

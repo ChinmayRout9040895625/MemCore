@@ -36,8 +36,9 @@ storage backends (Qdrant, Neo4j, Redis, Postgres) were actually reachable.
    Metric names: `memcore_http_requests_total` and
    `memcore_http_request_duration_seconds` (labels `method`, `route`,
    `status` — route is the matched Starlette path *template*, not the raw
-   path, to bound label cardinality; unmatched 404s have no matched route and
-   fall back to the raw path, an accepted low-volume exception), and
+   path, to bound label cardinality; unmatched requests have no matched route
+   and are labeled with the constant `unmatched` — the raw path appears only
+   in the access log), and
    `memcore_operation_duration_seconds{operation}` for
    `recall`/`consolidation`/`decay_sweep`.
 
