@@ -8,8 +8,8 @@
 - **Phase 11 (Deployment: Docker, K8s, CI/CD): NOT STARTED — awaiting user approval.**
 - Phases 1–10 complete and committed (see `git log --oneline`).
 
-## Last gate (Phase 10, 2026-07-06)
-- pytest: **208 passed, 3 integration-skipped** · coverage **94.01%**
+## Last gate (Phase 10, 2026-07-06, incl. final-review polish commit)
+- pytest: **210 passed, 3 integration-skipped** · coverage **94.03%**
 - ruff: clean · mypy (strict, 106 files): clean
 - Correlation ids (`memcore.observability.context` contextvar; stamped on
   every log record by a logging filter; bound per HTTP request by

@@ -51,8 +51,8 @@ try/finally so exceptions still record latency; covered by a direct
 `decay_tenant`; also bind/reset a per-job request id). `services/*` itself
 stays untouched — no telemetry port introduced (YAGNI).
 
-## Gate (2026-07-06)
-- pytest: **208 passed, 3 integration-skipped** · coverage **94.01%**
+## Gate (2026-07-06, incl. final-review polish commit)
+- pytest: **210 passed, 3 integration-skipped** · coverage **94.03%**
 - ruff: clean
 - mypy (strict, 106 files): clean
 
