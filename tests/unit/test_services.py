@@ -213,3 +213,40 @@ async def test_recall_skips_records_missing_from_store(
     store._records.clear()
     assert await vectors.count("mem_test") == 1
     assert await recall.recall(TENANT, AGENT, "python") == []
+
+
+async def test_restore_soft_deleted_record(
+    memory_setup: tuple[MemoryService, RecallService, InMemoryVectorStore],
+) -> None:
+    memories, recall, _vectors = memory_setup
+    record = await memories.remember(TENANT, AGENT, "Bruno is a beagle.")
+    await memories.forget(TENANT, record.id, mode="soft")
+
+    restored = await memories.restore(TENANT, record.id)
+    assert restored.id == record.id
+    assert restored.status is MemoryStatus.ACTIVE
+    # Re-indexed: recall can surface it again.
+    results = await recall.recall(TENANT, AGENT, "beagle")
+    assert record.id in {s.memory.id for s in results}
+    # Audit trail records the restore.
+    events = await memories._store.list_audit(TENANT)
+    assert any(
+        e.action is AuditAction.RESTORE and e.target_id == record.id for e in events
+    )
+
+
+async def test_restore_rejects_active_record(
+    memory_setup: tuple[MemoryService, RecallService, InMemoryVectorStore],
+) -> None:
+    memories, _, _ = memory_setup
+    record = await memories.remember(TENANT, AGENT, "still active")
+    with pytest.raises(ValidationError):
+        await memories.restore(TENANT, record.id)
+
+
+async def test_restore_missing_record_is_not_found(
+    memory_setup: tuple[MemoryService, RecallService, InMemoryVectorStore],
+) -> None:
+    memories, _, _ = memory_setup
+    with pytest.raises(NotFoundError):
+        await memories.restore(TENANT, "no-such-id")

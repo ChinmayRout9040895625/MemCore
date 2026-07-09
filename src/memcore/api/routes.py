@@ -181,6 +181,14 @@ async def forget_memory(
     await state.memories.forget(tenant, memory_id, mode=mode)
 
 
+@router.post("/memories/{memory_id}/restore", response_model=MemoryResponse)
+async def restore_memory(
+    memory_id: str, state: StateDep, tenant: TenantDep
+) -> MemoryResponse:
+    record = await state.memories.restore(tenant, memory_id)
+    return MemoryResponse(memory=record)
+
+
 # -- consolidation ------------------------------------------------------------
 @router.post("/consolidate", response_model=JobResponse, status_code=202)
 async def consolidate(

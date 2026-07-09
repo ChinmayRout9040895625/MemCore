@@ -64,6 +64,7 @@ class AuditAction(StrEnum):
     PRUNE = "prune"
     FORGET = "forget"
     ERASE = "erase"
+    RESTORE = "restore"
 
 
 class Role(StrEnum):

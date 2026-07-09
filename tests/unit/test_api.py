@@ -341,3 +341,36 @@ async def test_remember_and_correct_accept_confidence(client: AsyncClient) -> No
     )
     assert corrected.status_code == 200
     assert corrected.json()["memory"]["confidence"] == 0.9
+
+
+async def test_restore_endpoint_round_trip(client: AsyncClient) -> None:
+    created = await client.post(
+        "/v1/memories", json={"agent_id": "a1", "content": "restore me"},
+        headers=_h(),
+    )
+    memory_id = created.json()["memory"]["id"]
+    # Soft delete, then restore.
+    deleted = await client.delete(f"/v1/memories/{memory_id}", headers=_h())
+    assert deleted.status_code == 204
+    restored = await client.post(
+        f"/v1/memories/{memory_id}/restore", headers=_h()
+    )
+    assert restored.status_code == 200
+    assert restored.json()["memory"]["status"] == "active"
+    # A restored record is fetchable again.
+    got = await client.get(f"/v1/memories/{memory_id}", headers=_h())
+    assert got.status_code == 200
+
+
+async def test_restore_is_tenant_scoped(client: AsyncClient) -> None:
+    created = await client.post(
+        "/v1/memories", json={"agent_id": "a1", "content": "tenant one only"},
+        headers=_h(),
+    )
+    memory_id = created.json()["memory"]["id"]
+    await client.delete(f"/v1/memories/{memory_id}", headers=_h())
+    # Tenant 2 cannot restore tenant 1's record.
+    other = await client.post(
+        f"/v1/memories/{memory_id}/restore", headers=_h(KEY_T2)
+    )
+    assert other.status_code == 404

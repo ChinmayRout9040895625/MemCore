@@ -134,6 +134,27 @@ class MemoryService:
             reason=reason or f"{mode} delete",
         )
 
+    async def restore(self, tenant_id: str, memory_id: str) -> MemoryRecord:
+        """Bring a soft-deleted record back to ACTIVE and re-index it.
+
+        The inverse of ``forget(mode="soft")``. Hard-deleted records are gone
+        (``NotFoundError``); a record that is not soft-deleted cannot be
+        restored (``ValidationError``).
+        """
+        record = await self._store.get(tenant_id, memory_id)
+        if record is None or record.status is MemoryStatus.HARD_DELETED:
+            raise NotFoundError(f"memory {memory_id} not found")
+        if record.status is not MemoryStatus.SOFT_DELETED:
+            raise ValidationError(
+                f"memory {memory_id} is {record.status.value}, not soft-deleted"
+            )
+        await self._store.set_status(tenant_id, memory_id, MemoryStatus.ACTIVE)
+        restored = record.model_copy(update={"status": MemoryStatus.ACTIVE})
+        await self._index(restored)  # re-add to the retrievable vector index
+        await self._audit(tenant_id, AuditAction.RESTORE, memory_id,
+                          reason="restore soft-deleted")
+        return restored
+
     # -- reads -------------------------------------------------------------------
     async def get(self, tenant_id: str, memory_id: str) -> MemoryRecord:
         record = await self._store.get(tenant_id, memory_id)
