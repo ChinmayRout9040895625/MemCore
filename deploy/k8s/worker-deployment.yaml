@@ -1,0 +1,29 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: memcore-worker
+  namespace: memcore
+  labels: {app: memcore, component: worker}
+spec:
+  replicas: 1
+  selector:
+    matchLabels: {app: memcore, component: worker}
+  template:
+    metadata:
+      labels: {app: memcore, component: worker}
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+      containers:
+        - name: worker
+          image: memcore:latest   # replace with your registry tag
+          command: ["celery", "-A", "memcore.workers.celery_app", "worker", "--loglevel=info"]
+          ports:
+            - {name: metrics, containerPort: 9100}
+          envFrom:
+            - configMapRef: {name: memcore-config}
+            - secretRef: {name: memcore-secrets}
+          resources:
+            requests: {cpu: "250m", memory: "512Mi"}
+            limits: {cpu: "1", memory: "1Gi"}

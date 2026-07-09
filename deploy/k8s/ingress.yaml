@@ -1,0 +1,24 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: memcore-api
+  namespace: memcore
+  annotations:
+    # Rate limiting lives at the edge (nginx-ingress). Per-client cap:
+    nginx.ingress.kubernetes.io/limit-rps: "20"
+    nginx.ingress.kubernetes.io/limit-burst-multiplier: "3"
+    # Keep ops-only endpoints off the public path.
+    nginx.ingress.kubernetes.io/server-snippet: |
+      location = /ready { deny all; return 404; }
+      location = /metrics { deny all; return 404; }
+spec:
+  rules:
+    - host: memcore.example.com   # replace
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: memcore-api
+                port: {name: http}

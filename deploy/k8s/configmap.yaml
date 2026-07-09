@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: memcore-config
+  namespace: memcore
+data:
+  MEMCORE_ENV: "production"
+  MEMCORE_LOG_JSON: "true"
+  MEMCORE_DATABASE__URL: "postgresql+asyncpg://memcore:memcore@postgres:5432/memcore"
+  MEMCORE_VECTOR__URL: "http://qdrant:6333"
+  MEMCORE_GRAPH__URL: "bolt://neo4j:7687"
+  MEMCORE_REDIS__URL: "redis://redis:6379/0"
+  MEMCORE_SCHEDULER__BROKER_URL: "redis://redis:6379/1"
+  MEMCORE_METRICS_PORT: "9100"

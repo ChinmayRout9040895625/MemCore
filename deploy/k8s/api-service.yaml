@@ -1,0 +1,10 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: memcore-api
+  namespace: memcore
+  labels: {app: memcore, component: api}
+spec:
+  selector: {app: memcore, component: api}
+  ports:
+    - {name: http, port: 80, targetPort: http}
