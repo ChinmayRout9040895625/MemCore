@@ -245,3 +245,31 @@ async def test_prune_failure_does_not_abort_sweep() -> None:
     assert len(prune_summaries) == 1
     assert prune_summaries[0].metadata["failed"] == 1
     assert prune_summaries[0].metadata["pruned"] == 1
+
+
+async def test_concurrent_sweeps_same_tenant_prune_once() -> None:
+    import asyncio
+
+    env = _Env()
+    ancient = await env.seed("forgotten trivia", age=timedelta(days=365))
+
+    # Two overlapping sweeps for the same tenant must not double-prune or race
+    # the audit trail: the per-tenant lock serialises them.
+    first, second = await asyncio.gather(
+        env.decay.sweep(TENANT), env.decay.sweep(TENANT)
+    )
+
+    total_pruned = first.pruned + second.pruned
+    assert total_pruned == 1  # exactly one sweep pruned the record
+    pruned = await env.store.get(TENANT, ancient.id)
+    assert pruned is not None and pruned.status is MemoryStatus.SOFT_DELETED
+
+
+async def test_different_tenants_are_not_serialised() -> None:
+    # A lock keyed per tenant must not block a different tenant's sweep.
+    env = _Env()
+    await env.seed("t1 fact", age=timedelta(days=365))
+    report_a = await env.decay.sweep(TENANT)
+    report_b = await env.decay.sweep("t2")  # empty tenant, independent lock
+    assert report_a.pruned == 1
+    assert report_b.scanned == 0

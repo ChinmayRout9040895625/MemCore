@@ -12,10 +12,15 @@ Design (ADR-0016):
   deletion remains a manual/GDPR operation.
 * One PRUNE audit event summarizes each sweep. Re-running immediately is
   idempotent: soft-deleted records are no longer ACTIVE, so a second sweep
-  prunes nothing.
+  prunes nothing. Within a single process, concurrent sweeps for the same
+  tenant are serialised by a per-tenant asyncio.Lock, preventing audit/prune
+  races; cross-process dedupe via a distributed lock is deferred to Phase 11
+  backlog.
 """
 
 from __future__ import annotations
+
+import asyncio
 
 from pydantic import BaseModel
 
@@ -53,8 +58,20 @@ class DecayService:
         self._memories = memories
         self._importance = importance or ImportanceSettings()
         self._retention = retention or RetentionSettings()
+        self._locks: dict[str, asyncio.Lock] = {}
+
+    def _lock_for(self, tenant_id: str) -> asyncio.Lock:
+        lock = self._locks.get(tenant_id)
+        if lock is None:
+            lock = asyncio.Lock()
+            self._locks[tenant_id] = lock
+        return lock
 
     async def sweep(self, tenant_id: str) -> DecayReport:
+        async with self._lock_for(tenant_id):
+            return await self._sweep(tenant_id)
+
+    async def _sweep(self, tenant_id: str) -> DecayReport:
         now = utcnow()
         records = await self._store.list_records(
             tenant_id, None,
