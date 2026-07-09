@@ -5,6 +5,20 @@ Format follows [Keep a Changelog](https://keepachangelog.com/); versions follow 
 
 ## [Unreleased]
 
+### Added — Phase 11: Deployment (Docker, K8s, CI/CD)
+- Multi-stage `Dockerfile` (non-root) serving the API via uvicorn or the
+  Celery worker by command override; `.dockerignore`, `.env.example` — ADR-0020.
+- Full `docker-compose.yml` stack: API + worker + Postgres + Qdrant + Neo4j
+  + Redis with healthchecks and `depends_on: service_healthy`.
+- Kubernetes manifests (`deploy/k8s/`): API/worker Deployments, Service,
+  ConfigMap, Secret template, Ingress; `livenessProbe→/health`,
+  `readinessProbe→/ready`; edge rate limiting + internal-only ops endpoints.
+- Worker Prometheus exposition via `start_metrics_server` on worker init
+  (`MEMCORE_METRICS_PORT`).
+- CI: integration job (Qdrant/Neo4j/Redis service containers) + image build.
+- Operational backlog closed: `POST /v1/memories/{id}/restore` for
+  soft-deleted records; per-tenant in-process decay-sweep dedupe lock.
+
 ### Added — Phase 10: Observability & monitoring
 - Correlation ids: `memcore.observability.context` contextvar, stamped on
   every log record (plain + JSON) by a logging filter; ASGI middleware binds

@@ -15,7 +15,7 @@ self-review → fix → approval gate. Never skip tests, docs, or ADR updates.
 | 8 | Evaluation framework & baselines | ✅ Complete |
 | 9 | Python SDK | ✅ Complete |
 | 10 | Observability & monitoring | ✅ Complete |
-| 11 | Deployment (Docker, K8s, CI/CD) | ⏳ Next |
-| 12 | Documentation & examples | Planned |
+| 11 | Deployment (Docker, K8s, CI/CD) | ✅ Complete |
+| 12 | Documentation & examples | ⏳ Next |
 
 See per-phase records under `docs/design/phase-*.md`.

@@ -4,40 +4,45 @@
 > session-start hook says this file is stale, update it before new work.
 
 ## Current position
-- **Phase 10 (Observability & monitoring): COMPLETE.**
-- **Phase 11 (Deployment: Docker, K8s, CI/CD): NOT STARTED — awaiting user approval.**
-- Phases 1–10 complete and committed (see `git log --oneline`).
+- **Phase 11 (Deployment: Docker, K8s, CI/CD): COMPLETE.**
+- **Phase 12 (Documentation & examples): NOT STARTED — awaiting user approval.**
+- Phases 1–11 complete and committed (see `git log --oneline`).
 
-## Last gate (Phase 10, 2026-07-06, incl. final-review polish commit)
-- pytest: **210 passed, 3 integration-skipped** · coverage **94.03%**
+## Last gate (Phase 11, 2026-07-10)
+- pytest: **219 passed, 3 integration-skipped** (Qdrant/Redis/Neo4j
+  unreachable — no live backends in this environment, expected) ·
+  coverage **93.81%**
 - ruff: clean · mypy (strict, 106 files): clean
-- Correlation ids (`memcore.observability.context` contextvar; stamped on
-  every log record by a logging filter; bound per HTTP request by
-  `ObservabilityMiddleware` honoring/echoing `X-Request-ID`, per job by
-  Celery task shells). Prometheus metrics behind the new `observability`
-  extra (`pip install 'memcore[observability]'`): `memcore_http_requests_total`
-  / `memcore_http_request_duration_seconds` (route-template labels),
-  `memcore_operation_duration_seconds` (recall/consolidation/decay_sweep);
-  `GET /metrics` (501 + install hint without the extra). `GET /ready`:
-  per-component readiness via duck-typed adapter `ping()` (SQL, Qdrant,
-  Neo4j, Redis); 503 + `"degraded"` on any probe failure.
-  ADR-0019. Full report in `docs/design/phase-10.md`.
+- Restore endpoint (`POST /v1/memories/{id}/restore`: SOFT_DELETED→ACTIVE,
+  re-index, `AuditAction.RESTORE`, tenant-scoped 404). Per-tenant
+  in-process decay-sweep dedupe (`asyncio.Lock` registry). Worker Prometheus
+  exposition (`start_metrics_server` on `worker_process_init`, gated on
+  `MEMCORE_METRICS_PORT`). Multi-stage `Dockerfile` (non-root uid 10001,
+  one image serves API via uvicorn or worker via command override) +
+  `.dockerignore` + `.env.example`; full `docker-compose.yml` stack
+  (API+worker+Postgres+Qdrant+Neo4j+Redis, healthchecks,
+  `depends_on: service_healthy`). Kubernetes manifests under `deploy/k8s/`
+  (`livenessProbe→/health`, `readinessProbe→/ready`, ConfigMap, Secret
+  template, Ingress with edge rate limiting + internal-only `/ready`+
+  `/metrics`). CI gained `integration` (Qdrant/Neo4j/Redis service
+  containers, `pytest -m integration`) and `docker` (build + compose
+  validate, `timeout-minutes: 30`) jobs.
+  ADR-0020. Full report in `docs/design/phase-11.md`.
 
 ## Workspace (2026-07-02)
 - Setup complete: context layer + SessionStart hook + sonnet agents
   (`implementer`, `debugger`). Dispatch test passed (py.typed, gate green).
 
-## Next tasks (Phase 11, once approved)
-1. Dockerfile + docker-compose stack covering the full backend set (API,
-   worker, Postgres, Qdrant, Neo4j, Redis).
-2. Kubernetes manifests wiring the new `/ready` and `/health` endpoints to
-   readiness/liveness probes.
-3. CI pipeline running the full phase gate (pytest+coverage, ruff, mypy)
-   plus the integration suite against live backend containers.
-4. Worker metric exposition (pushgateway or sidecar — no HTTP server in
-   Celery workers today).
-5. Backlog carried over: per-tenant sweep dedupe + rate limiting; restore
-   endpoint for soft-deleted records.
+## Next tasks (Phase 12, once approved)
+1. API reference generated from the OpenAPI schema.
+2. Architecture and operations guides (deployment topology, backend
+   provisioning, observability/runbook material building on ADR-0019/0020).
+3. Runnable end-to-end examples using the Python SDK (`memcore.sdk`).
+4. Deployment walkthrough (Docker Compose local, then Kubernetes) using the
+   Phase 11 artifacts as the worked example.
+5. Backlog carried over from Phase 11: distributed (cross-process) decay-sweep
+   dedupe (Redis lock) + in-app/distributed rate limiting (edge-only today);
+   per-role slim images; Helm chart.
 
 ## Open decisions for the user
-- Approve Phase 11 start.
+- Approve Phase 12 start.

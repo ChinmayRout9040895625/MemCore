@@ -30,3 +30,48 @@ jobs:
         run: mypy
       - name: Test
         run: pytest
+
+  integration:
+    runs-on: ubuntu-latest
+    services:
+      qdrant:
+        image: qdrant/qdrant:v1.12.1
+        ports: ["6333:6333"]
+      neo4j:
+        image: neo4j:5.24-community
+        env:
+          NEO4J_AUTH: neo4j/memcore-dev-password
+        ports: ["7687:7687"]
+      redis:
+        image: redis:7.4-alpine
+        ports: ["6379:6379"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: "3.12", cache: pip}
+      - name: Install
+        run: pip install -e ".[dev,vector,graph,working,api,sql,scheduler,observability]"
+      - name: Wait for backends
+        run: |
+          for i in $(seq 1 30); do
+            (exec 3<>/dev/tcp/localhost/6333) 2>/dev/null && \
+            (exec 3<>/dev/tcp/localhost/7687) 2>/dev/null && \
+            redis-cli -h localhost ping 2>/dev/null | grep -q PONG && break
+            sleep 2
+          done
+      - name: Integration tests
+        env:
+          MEMCORE_GRAPH__PASSWORD: memcore-dev-password
+        run: pytest -m integration
+
+  docker:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build image
+        run: docker build -t memcore:ci .
+      - name: Validate compose
+        run: |
+          cp .env.example .env
+          docker compose config >/dev/null
