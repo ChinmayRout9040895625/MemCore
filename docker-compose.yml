@@ -43,7 +43,48 @@ services:
       timeout: 5s
       retries: 5
 
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: memcore
+      POSTGRES_PASSWORD: memcore
+      POSTGRES_DB: memcore
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U memcore"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  api:
+    build: .
+    env_file: .env
+    ports:
+      - "8000:8000"
+    depends_on:
+      postgres: {condition: service_healthy}
+      qdrant: {condition: service_healthy}
+      neo4j: {condition: service_healthy}
+      redis: {condition: service_healthy}
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://localhost:8000/health')\""]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+
+  worker:
+    build: .
+    command: ["celery", "-A", "memcore.workers.celery_app", "worker", "--loglevel=info"]
+    env_file: .env
+    depends_on:
+      redis: {condition: service_healthy}
+      postgres: {condition: service_healthy}
+
 volumes:
   qdrant_data:
   neo4j_data:
   redis_data:
+  postgres_data:
