@@ -1,6 +1,17 @@
 # MemCore Kubernetes Deployment
 
-This directory contains Kubernetes manifests for deploying the full MemCore stack (API, worker, and backing services) on a Kubernetes cluster.
+This directory contains Kubernetes manifests for deploying the MemCore API and worker on a Kubernetes cluster. **Backing services (Postgres, Qdrant, Neo4j, Redis) must be provisioned separately** and reachable at the DNS names configured in `configmap.yaml`.
+
+## Prerequisites: Backing Services
+
+Before applying these manifests, ensure the following services are deployed and accessible **within the cluster** at these DNS names:
+
+- **Postgres** at `postgres:5432` (or update `MEMCORE_DB_URL` in ConfigMap)
+- **Qdrant** at `qdrant:6333` (or update `MEMCORE_QDRANT_HOST` in ConfigMap)
+- **Neo4j** at `neo4j:7687` (or update `MEMCORE_NEO4J_HOST` in ConfigMap)
+- **Redis** at `redis:6379` (or update `MEMCORE_REDIS_URL` in ConfigMap)
+
+Deploy these via their official Helm charts, operators, or managed services, and ensure the `memcore` namespace can reach them. Pods will CrashLoopBackOff if these services are unavailable.
 
 ## Files Overview
 
@@ -38,10 +49,10 @@ kubectl apply -f deploy/k8s/api-service.yaml
 kubectl apply -f deploy/k8s/ingress.yaml
 ```
 
-Or apply non-secret resources directly:
+Or apply non-secret resources directly (Unix/Linux):
 
 ```bash
-kubectl apply -f deploy/k8s/ --exclude deploy/k8s/secret.example.yaml
+find deploy/k8s -maxdepth 1 -name '*.yaml' ! -name 'secret.example.yaml' -exec kubectl -n memcore apply -f {} +
 ```
 
 Then separately apply your filled secret:
@@ -74,6 +85,8 @@ image: myregistry.azurecr.io/memcore:latest
 
 ## Cluster-Internal Endpoints
 
+**Note on Ingress Configuration:** Recent `ingress-nginx` releases disable snippet annotations by default for security (CVE hardening). If the `/ready` and `/metrics` deny rules are silently ignored, enable snippet annotations on the controller via `allow-snippet-annotations: true`, or enforce the block via a NetworkPolicy or separate internal ingress instead.
+
 The following endpoints are **blocked from public access** by the Ingress configuration:
 
 - **/ready** (readiness probe) — Used only by Kubernetes for deployment health checks.
@@ -81,11 +94,18 @@ The following endpoints are **blocked from public access** by the Ingress config
 
 ### Metrics Collection
 
-- **API Metrics**: The API exposes Prometheus metrics on port 8000 at `/metrics`. These should be scraped via a `ServiceMonitor` or internal scrape target pointing to the `memcore-api` Service. This keeps metrics behind cluster network boundaries.
+**API Metrics:**
+- **Scrape target**: `http://memcore-api.memcore.svc.cluster.local:8000/metrics`
+- The API serves Prometheus metrics on port 8000 at `/metrics` (same HTTP port as the application).
+- Blocked at the public Ingress layer; scrape internally only.
+- Configure Prometheus with a `ServiceMonitor` resource or a static scrape target pointing to `memcore-api:8000`.
 
-- **Worker Metrics**: The Celery worker exposes metrics on port 9100 (as configured in the ConfigMap's `MEMCORE_METRICS_PORT`). These can be scraped internally by Prometheus via a headless Service or port-forwarding. Worker metrics are never exposed externally.
+**Worker Metrics:**
+- **Scrape target**: `http://<worker-pod-ip>:9100/metrics`
+- The Celery worker exposes Prometheus metrics on port 9100 (configured via `MEMCORE_METRICS_PORT` in the ConfigMap).
+- Never exposed externally; scrape via port-forward or a headless Service.
 
-Both internal endpoints remain protected and are accessible only within the cluster for operational monitoring and debugging.
+Both endpoints remain protected and are accessible only within the cluster for operational monitoring and debugging.
 
 ## Health Checks
 
