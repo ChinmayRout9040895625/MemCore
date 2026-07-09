@@ -12,10 +12,12 @@ worker process) and run the async pipeline. Task names match what
 from __future__ import annotations
 
 import asyncio
+import os
 import time
 from typing import Any
 
 from celery import Celery
+from celery.signals import worker_process_init
 
 from memcore.config import Settings, load_settings
 from memcore.logging import configure_logging, get_logger
@@ -39,6 +41,21 @@ app = Celery(
 app.conf.task_serializer = "json"
 app.conf.result_serializer = "json"
 app.conf.accept_content = ["json"]
+
+
+@worker_process_init.connect
+def _start_worker_metrics(**_kwargs: Any) -> None:
+    """Expose per-worker metrics when MEMCORE_METRICS_PORT is set."""
+    port = os.getenv("MEMCORE_METRICS_PORT")
+    if not port:
+        return
+    from memcore.observability import metrics
+
+    try:
+        metrics.start_metrics_server(int(port))
+        logger.info("worker metrics server started", extra={"port": port})
+    except Exception as exc:  # never let metrics kill a worker
+        logger.warning("worker metrics server failed", extra={"error": str(exc)})
 
 _cache: dict[str, Any] = {}
 

@@ -60,3 +60,46 @@ def test_unavailability_is_cached_per_process_state() -> None:
     metrics.observe_operation("decay_sweep", 0.5)
     payload, _ = metrics.render()
     assert 'operation="decay_sweep"' in payload.decode()
+
+
+def test_start_metrics_server_serves_exposition() -> None:
+    import urllib.request
+
+    from memcore.observability import metrics
+
+    metrics.observe_operation("recall", 0.01)
+    # Port 0 asks the OS for a free port; capture it from the returned server.
+    server = metrics.start_metrics_server(0)
+    try:
+        port = server.server_port  # http.server.HTTPServer attribute
+        with urllib.request.urlopen(f"http://127.0.0.1:{port}/", timeout=5) as resp:
+            body = resp.read().decode()
+        assert "memcore_operation_duration_seconds" in body
+    finally:
+        server.shutdown()
+
+
+def test_start_metrics_server_raises_without_extra(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    import builtins
+
+    from memcore.observability import metrics
+
+    real_import = builtins.__import__
+
+    def fake_import(name: str, *args: Any, **kwargs: Any) -> Any:
+        if name.startswith("prometheus_client"):
+            raise ImportError("no prometheus")
+        return real_import(name, *args, **kwargs)
+
+    saved = dict(metrics._cache)
+    metrics._cache.clear()
+    monkeypatch.setattr(builtins, "__import__", fake_import)
+    try:
+        with pytest.raises(ConfigurationError, match=r"memcore\[observability\]"):
+            metrics.start_metrics_server(0)
+    finally:
+        monkeypatch.undo()
+        metrics._cache.clear()
+        metrics._cache.update(saved)

@@ -101,3 +101,19 @@ def render() -> tuple[bytes, str]:
     from prometheus_client import CONTENT_TYPE_LATEST, generate_latest
 
     return generate_latest(cache["registry"]), CONTENT_TYPE_LATEST
+
+
+def start_metrics_server(port: int) -> Any:
+    """Start an HTTP server exposing this process's metric registry.
+
+    Used by the Celery worker (which has no ASGI app) so its recorded
+    operation latencies are scrapeable. Returns the ``HTTPServer`` so callers
+    can shut it down; raises :class:`ConfigurationError` without the extra.
+    """
+    cache = _load()
+    if cache is None:
+        raise ConfigurationError(_INSTALL_HINT)
+    from prometheus_client import start_http_server
+
+    server, _thread = start_http_server(port, registry=cache["registry"])
+    return server
