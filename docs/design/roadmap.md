@@ -16,6 +16,10 @@ self-review → fix → approval gate. Never skip tests, docs, or ADR updates.
 | 9 | Python SDK | ✅ Complete |
 | 10 | Observability & monitoring | ✅ Complete |
 | 11 | Deployment (Docker, K8s, CI/CD) | ✅ Complete |
-| 12 | Documentation & examples | ⏳ Next |
+| 12 | Documentation & examples | ✅ Complete |
 
 See per-phase records under `docs/design/phase-*.md`.
+
+**All 12 phases complete — MemCore is v0.1, feature-complete.** Future work
+is tracked as the post-v1 backlog in `PROJECT_STATE.md`, not as further
+roadmap phases.

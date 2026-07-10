@@ -4,45 +4,41 @@
 > session-start hook says this file is stale, update it before new work.
 
 ## Current position
-- **Phase 11 (Deployment: Docker, K8s, CI/CD): COMPLETE.**
-- **Phase 12 (Documentation & examples): NOT STARTED — awaiting user approval.**
-- Phases 1–11 complete and committed (see `git log --oneline`).
+- **ALL 12 PHASES COMPLETE — v0.1 feature-complete.**
+- Phase 12 (Documentation & examples): COMPLETE. Phases 1–12 complete and
+  committed (see `git log --oneline`).
 
-## Last gate (Phase 11, 2026-07-10, incl. final-review fix commit)
-- pytest: **221 passed, 3 integration-skipped** (Qdrant/Redis/Neo4j
+## Last gate (Phase 12, 2026-07-10)
+- pytest: **228 passed, 3 integration-skipped** (Qdrant/Redis/Neo4j
   unreachable — no live backends in this environment, expected) ·
-  coverage **93.81%**
-- ruff: clean · mypy (strict, 106 files): clean
-- Restore endpoint (`POST /v1/memories/{id}/restore`: SOFT_DELETED→ACTIVE,
-  re-index, `AuditAction.RESTORE`, tenant-scoped 404). Per-tenant
-  in-process decay-sweep dedupe (`asyncio.Lock` registry). Worker Prometheus
-  exposition (`start_metrics_server` on `worker_process_init`, gated on
-  `MEMCORE_METRICS_PORT`). Multi-stage `Dockerfile` (non-root uid 10001,
-  one image serves API via uvicorn or worker via command override) +
-  `.dockerignore` + `.env.example`; full `docker-compose.yml` stack
-  (API+worker+Postgres+Qdrant+Neo4j+Redis, healthchecks,
-  `depends_on: service_healthy`). Kubernetes manifests under `deploy/k8s/`
-  (`livenessProbe→/health`, `readinessProbe→/ready`, ConfigMap, Secret
-  template, Ingress with edge rate limiting + internal-only `/ready`+
-  `/metrics`). CI gained `integration` (Qdrant/Neo4j/Redis service
-  containers, `pytest -m integration`) and `docker` (build + compose
-  validate, `timeout-minutes: 30`) jobs.
-  ADR-0020. Full report in `docs/design/phase-11.md`.
+  coverage **93.93%**
+- ruff: clean · mypy (strict, 108 files): clean
+- Generated `docs/api-reference.md` (from the live OpenAPI schema, CI
+  drift-tested) — ADR-0021. Four CI-executed examples under `examples/`
+  (async/sync quickstarts, memory lifecycle, sessions + consolidation).
+  `docs/guides/operations.md` + `docs/guides/deployment.md`; refreshed
+  `docs/design/architecture.md`. README overhauled: quickstart, docs index,
+  install-extras table, v0.1 status. Full report in `docs/design/phase-12.md`.
 
 ## Workspace (2026-07-02)
 - Setup complete: context layer + SessionStart hook + sonnet agents
   (`implementer`, `debugger`). Dispatch test passed (py.typed, gate green).
 
-## Next tasks (Phase 12, once approved)
-1. API reference generated from the OpenAPI schema.
-2. Architecture and operations guides (deployment topology, backend
-   provisioning, observability/runbook material building on ADR-0019/0020).
-3. Runnable end-to-end examples using the Python SDK (`memcore.sdk`).
-4. Deployment walkthrough (Docker Compose local, then Kubernetes) using the
-   Phase 11 artifacts as the worked example.
-5. Backlog carried over from Phase 11: distributed (cross-process) decay-sweep
-   dedupe (Redis lock) + in-app/distributed rate limiting (edge-only today);
-   per-role slim images; Helm chart.
+## Post-v1 backlog
+1. SDK `restore_memory` method (REST endpoint shipped Phase 11, no typed
+   SDK wrapper yet).
+2. Distributed (cross-process) decay-sweep dedupe (Redis lock) + in-app/
+   distributed rate limiting (edge-only today).
+3. Per-role slim Docker images (API without `embeddings`/`llm`, worker
+   without `api`).
+4. Helm chart for `deploy/k8s/` (currently plain manifests).
+5. Postgres-in-CI contract test (SQL store currently only unit-tested
+   against SQLite; `integration` CI job covers Qdrant/Neo4j/Redis only).
+6. Prometheus multiprocess mode (to support worker `--concurrency > 1`
+   without racing the metrics port).
+7. Grafana dashboards and alert rules on top of Phase 10's metrics.
+8. Real-corpus evaluation datasets (Phase 8's harness runs on synthetic
+   data only).
 
 ## Open decisions for the user
-- Approve Phase 12 start.
+- Define the post-v1 roadmap (none pending).

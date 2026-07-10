@@ -5,6 +5,20 @@ Format follows [Keep a Changelog](https://keepachangelog.com/); versions follow 
 
 ## [Unreleased]
 
+### Added — Phase 12: Documentation & examples
+- `docs/api-reference.md` generated from the OpenAPI schema by
+  `scripts/generate_api_reference.py`; a CI drift test keeps it current —
+  ADR-0021.
+- `examples/`: four runnable SDK scripts (async/sync quickstarts, memory
+  lifecycle, sessions + consolidation), each executed in CI against the
+  in-process app.
+- `docs/guides/operations.md` (config reference, backing services,
+  observability runbook, memory ops, troubleshooting, known limits) and
+  `docs/guides/deployment.md` (compose → Kubernetes walkthrough);
+  `docs/design/architecture.md` refreshed through Phase 11.
+- README overhauled: v0.1 feature-complete, quickstart, docs index, extras
+  table. All 12 roadmap phases complete.
+
 ### Added — Phase 11: Deployment (Docker, K8s, CI/CD)
 - Multi-stage `Dockerfile` (non-root) serving the API via uvicorn or the
   Celery worker by command override; `.dockerignore`, `.env.example` — ADR-0020.

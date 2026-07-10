@@ -26,5 +26,6 @@ supersedes the old one.
 | [0018](0018-python-sdk.md) | Python SDK: async+sync typed clients, GET-only retries, sdk extra | Accepted |
 | [0019](0019-observability.md) | Observability: correlation ids, Prometheus metrics + /ready probes behind an extra | Accepted |
 | [0020](0020-deployment.md) | Deployment: one image/two roles, compose stack, K8s probes, CI integration + image build | Accepted |
+| [0021](0021-documentation-strategy.md) | Documentation: generated API reference + CI-executed examples, source-verified guides | Accepted |
 
 > ADR numbering here is renumbered from the design package (§3) for a clean log.
