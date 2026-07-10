@@ -4,7 +4,8 @@ Closing a session enqueues consolidation (an LLM extracts durable facts in
 the background). With the compose stack, set MEMCORE_LLM__API_KEY server-side
 for real extraction; without it, consolidation falls back per configuration.
 
-Run:  MEMCORE_URL=http://localhost:8000 python examples/sessions_and_consolidation.py
+Run:  MEMCORE_URL=http://localhost:8000 MEMCORE_API_KEY=dev-key \
+        python examples/sessions_and_consolidation.py
 """
 
 from __future__ import annotations

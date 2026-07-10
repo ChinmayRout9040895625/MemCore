@@ -4,7 +4,7 @@ Records are immutable and versioned: a correction supersedes rather than
 edits, and soft deletion is reversible server-side (POST
 /v1/memories/{id}/restore — not yet wrapped by the SDK).
 
-Run:  MEMCORE_URL=http://localhost:8000 python examples/memory_lifecycle.py
+Run:  MEMCORE_URL=http://localhost:8000 MEMCORE_API_KEY=dev-key python examples/memory_lifecycle.py
 """
 
 from __future__ import annotations

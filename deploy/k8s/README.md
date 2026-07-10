@@ -88,10 +88,10 @@ The following endpoints are **blocked from public access** by the Ingress config
 ### Metrics Collection
 
 **API Metrics:**
-- **Scrape target**: `http://memcore-api.memcore.svc.cluster.local:8000/metrics`
-- The API serves Prometheus metrics on port 8000 at `/metrics` (same HTTP port as the application).
+- **Scrape target**: `http://memcore-api.memcore.svc.cluster.local:80/metrics`
+- The API Service exposes port 80 (targetPort `http` = the pod's 8000) at `/metrics`.
 - Blocked at the public Ingress layer; scrape internally only.
-- Configure Prometheus with a `ServiceMonitor` resource or a static scrape target pointing to `memcore-api:8000`.
+- Configure Prometheus with a `ServiceMonitor` resource or a static scrape target pointing to `memcore-api:80`.
 
 **Worker Metrics:**
 - **Scrape target**: `http://<worker-pod-ip>:9100/metrics`

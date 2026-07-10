@@ -62,6 +62,8 @@ Then install the SDK and talk to it:
 pip install 'memcore[sdk]'
 ```
 
+(Not on PyPI yet — until published, install from a checkout: `pip install -e '.[sdk]'` from the repo root.)
+
 ```python
 async with AsyncMemCoreClient(url, key) as client:
     record = await client.remember(
@@ -95,15 +97,15 @@ The core package is dependency-light; backends and interfaces are opt-in extras:
 
 | Extra | Adds | Use for |
 |---|---|---|
-| `sdk` | pydantic-settings, httpx | Talking to a MemCore server |
+| `sdk` | httpx | Talking to a MemCore server |
 | `api` | fastapi, uvicorn | Running the API |
 | `vector` / `graph` / `working` | qdrant-client / neo4j / redis | Storage adapters |
-| `sql` / `postgres` | SQLAlchemy(+asyncio) / asyncpg | Metadata store (SQLite tests / Postgres prod) |
+| `sql` / `postgres` | SQLAlchemy(+asyncio), aiosqlite / asyncpg | Metadata store (SQLite tests / Postgres prod) |
 | `scheduler` | celery | Async consolidation & decay jobs |
 | `embeddings` | sentence-transformers | Local `bge-small` embeddings |
 | `llm` | anthropic, openai, httpx | Consolidation LLM providers |
 | `observability` | prometheus-client | `/metrics`, worker metric exposition |
-| `dev` | pytest, ruff, mypy, pre-commit | Contributing |
+| `dev` | pytest, pytest-cov, pytest-asyncio, httpx, ruff, mypy, pre-commit, prometheus-client | Contributing |
 
 ## Development
 

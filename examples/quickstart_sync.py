@@ -1,6 +1,6 @@
 """MemCore quickstart (sync): same flow as quickstart_async, blocking client.
 
-Run:  MEMCORE_URL=http://localhost:8000 python examples/quickstart_sync.py
+Run:  MEMCORE_URL=http://localhost:8000 MEMCORE_API_KEY=dev-key python examples/quickstart_sync.py
 """
 
 from __future__ import annotations

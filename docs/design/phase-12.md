@@ -16,8 +16,9 @@ hand-maintained section for operational endpoints excluded from that schema
 it byte-for-byte against the committed copy, failing on drift.
 
 **Examples** (`examples/`) — four runnable SDK scripts, each exposing a
-`main(client)` seam and executed in CI against the in-process ASGI app
-(`tests/unit/test_examples.py`):
+`main(client)` seam and CI-executed (`tests/unit/test_examples.py`): the
+three async examples against the in-process ASGI app; the sync twin against
+a mocked transport.
 - `quickstart_async.py` — remember + hybrid recall, `AsyncMemCoreClient`.
 - `quickstart_sync.py` — the same flow, blocking `MemCoreClient`.
 - `memory_lifecycle.py` — versioned correction, version chain, hard delete.

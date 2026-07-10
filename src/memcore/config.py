@@ -97,7 +97,7 @@ class RetentionSettings(BaseModel):
     prune_threshold: float = Field(default=0.05, ge=0.0, le=1.0)
     # Never prune records younger than this, regardless of score.
     min_age_days: float = Field(default=14.0, gt=0)
-    # Max records fetched per sweep (v1: single page, newest-first).
+    # Max records fetched per sweep (v1: single page, oldest-first).
     scan_limit: int = Field(default=10_000, ge=1)
 
 

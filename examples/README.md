@@ -7,7 +7,7 @@ guaranteed current.
 ## Setup
 
 ```bash
-pip install 'memcore[sdk]'
+pip install 'memcore[sdk]'  # not on PyPI yet — from a checkout use: pip install -e '.[sdk]'
 # Bring up a local stack (from the repo root):
 cp .env.example .env && docker compose up -d --build
 ```

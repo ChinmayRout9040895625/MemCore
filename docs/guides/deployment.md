@@ -160,7 +160,7 @@ MEMCORE_URL=http://localhost:8000 MEMCORE_API_KEY=<key-from-secret.yaml> \
 **Scraping.** `ingress.yaml` denies public access to `/ready` and `/metrics`
 (`server-snippet` block). Scrape the API's `/metrics` cluster-internally —
 per `deploy/k8s/README.md`, a `ServiceMonitor` or static target pointing at
-`memcore-api:8000`. The worker's `:9100` has no Service in front of it at
+`memcore-api:80`. The worker's `:9100` has no Service in front of it at
 all; scrape via port-forward or a headless Service, as the README describes.
 
 **Worker concurrency and scaling.** `worker-deployment.yaml` runs

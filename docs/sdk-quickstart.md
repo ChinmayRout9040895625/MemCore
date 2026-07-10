@@ -4,6 +4,7 @@
 
 ```bash
 pip install 'memcore[sdk]'   # pydantic, pydantic-settings + httpx only; no server dependencies
+# Not on PyPI yet — until published, install from a checkout: pip install -e '.[sdk]'
 ```
 
 ## Async

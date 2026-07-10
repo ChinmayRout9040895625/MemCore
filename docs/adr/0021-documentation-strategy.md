@@ -26,8 +26,9 @@ that wrote them, not just accurate on the day they were written.
 
 2. **Examples are executable scripts, not code blocks in prose.** Each script
    under `examples/` exposes a `main(client)` seam; `tests/unit/test_examples.py`
-   imports and runs every one of them against the in-process ASGI app in CI.
-   An example that no longer matches the SDK's actual method names or
+   imports and runs every one of them in CI — the three async examples against
+   the in-process ASGI app, the sync twin against a mocked transport. An
+   example that no longer matches the SDK's actual method names or
    signatures fails a test, not a reader.
 
 3. **Guides remain hand-written**, because operational judgment
