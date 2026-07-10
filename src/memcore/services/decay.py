@@ -46,6 +46,17 @@ class DecayReport(BaseModel):
 
 
 class DecayService:
+    """Orchestrates decay scoring and pruning (see module docstring).
+
+    The per-tenant ``asyncio.Lock`` registry protects same-event-loop
+    concurrency only: it serialises concurrent sweep calls made *within one
+    process*. A default prefork Celery worker forks separate worker
+    processes, each with its own event loop and its own lock registry, so
+    this lock does nothing to prevent two sibling processes from sweeping
+    the same tenant at once — cross-process dedupe needs a distributed
+    (Redis) lock, deferred per ADR-0020.
+    """
+
     def __init__(
         self,
         store: MemoryStore,

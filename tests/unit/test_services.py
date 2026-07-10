@@ -160,6 +160,40 @@ async def test_forget_soft_and_hard(
         await memories.forget(TENANT, "missing", mode="soft")
 
 
+async def test_forget_soft_rejects_superseded_record(
+    memory_setup: tuple[MemoryService, RecallService, InMemoryVectorStore],
+) -> None:
+    """Soft-deleting a SUPERSEDED record is meaningless and would let
+    ``restore`` later resurrect it into a second ACTIVE version, violating
+    ADR-0007's immutable+versioned invariant. Hard delete (GDPR erase of an
+    old version) must still be allowed."""
+    memories, _, _ = memory_setup
+    v1 = await memories.remember(TENANT, AGENT, "Chinmay lives in Delhi.")
+    await memories.correct(TENANT, v1.id, content="Chinmay lives in Bangalore.")
+
+    old = await memories.get(TENANT, v1.id)
+    assert old.status is MemoryStatus.SUPERSEDED
+
+    with pytest.raises(ValidationError):
+        await memories.forget(TENANT, v1.id, mode="soft")
+
+    # Hard delete of the superseded version is still allowed.
+    await memories.forget(TENANT, v1.id, mode="hard")
+    with pytest.raises(NotFoundError):
+        await memories.get(TENANT, v1.id)
+
+
+async def test_restore_hard_deleted_is_not_found(
+    memory_setup: tuple[MemoryService, RecallService, InMemoryVectorStore],
+) -> None:
+    memories, _, _ = memory_setup
+    rec = await memories.remember(TENANT, AGENT, "will be hard-deleted")
+    await memories.forget(TENANT, rec.id, mode="hard")
+
+    with pytest.raises(NotFoundError):
+        await memories.restore(TENANT, rec.id)
+
+
 # -- recall -------------------------------------------------------------------
 async def test_recall_ranks_and_reinforces(
     memory_setup: tuple[MemoryService, RecallService, InMemoryVectorStore],

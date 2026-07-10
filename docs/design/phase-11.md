@@ -75,8 +75,8 @@ unchanged. Two new jobs:
   the compose file. `timeout-minutes: 30`, sized against the measured ~19
   minute local build with headroom for a colder CI cache.
 
-## Gate (2026-07-10)
-- pytest: **219 passed, 3 integration-skipped (Qdrant/Redis/Neo4j
+## Gate (2026-07-10, incl. final-review fix commit)
+- pytest: **221 passed, 3 integration-skipped (Qdrant/Redis/Neo4j
   unreachable in this environment — expected, no live backends here)** ·
   coverage **93.81%**
 - ruff: clean
@@ -132,5 +132,11 @@ unchanged. Two new jobs:
   ~8.7GB). A slimmer API-only / worker-only image is a future split.
 - **Helm chart** — `deploy/k8s/` is plain manifests; templating/values for
   multi-environment installs is not built.
+- **Postgres in CI** — the integration job runs the Qdrant/Neo4j/Redis
+  contract suites against real containers, but the SQL store is still only
+  exercised against the SQLite unit fakes; the asyncpg/Postgres path first
+  runs in a real deployment. Adding a `postgres` service container plus the
+  existing `check_memory_store_contract` as an integration test is the queued
+  follow-up.
 - Grafana dashboards and alert rules on top of Phase 10's metrics — still
   open, unchanged from the Phase 10 deferral.

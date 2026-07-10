@@ -18,11 +18,16 @@ spec:
       containers:
         - name: api
           image: memcore:latest   # replace with your registry tag
+          imagePullPolicy: IfNotPresent
           ports:
             - {name: http, containerPort: 8000}
           envFrom:
             - configMapRef: {name: memcore-config}
             - secretRef: {name: memcore-secrets}
+          startupProbe:
+            httpGet: {path: /health, port: http}
+            failureThreshold: 30
+            periodSeconds: 10
           livenessProbe:
             httpGet: {path: /health, port: http}
             initialDelaySeconds: 10

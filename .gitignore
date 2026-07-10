@@ -28,3 +28,6 @@ Thumbs.db
 # Local data / backends
 data/
 *.log
+
+# Real credentials, never commit
+deploy/k8s/secret.yaml

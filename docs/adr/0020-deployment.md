@@ -48,7 +48,14 @@ there was no path from a checkout to a deployable artifact.
    API does (ADR-0019 deferred this explicitly); this closes that gap without
    forcing every worker deployment to run a metrics server it doesn't want.
    Unset the env var and the worker behaves exactly as before — never crashes
-   the worker if metrics setup fails.
+   the worker if metrics setup fails. This exposition assumes a
+   single-process worker: the shipped manifests now pass
+   `--concurrency=1` precisely so that exactly one process binds port 9100
+   and owns the metrics registry — a default prefork worker with multiple
+   child processes would otherwise race the port and silently expose only
+   one child's counters. Supporting higher concurrency needs prometheus's
+   multiprocess mode (a shared directory + `multiprocess.MultiProcessCollector`),
+   which is a follow-up, not built here.
 
 6. **CI gains two jobs** alongside the existing `test` matrix: an
    `integration` job with Qdrant/Neo4j/Redis service containers running
@@ -67,6 +74,13 @@ there was no path from a checkout to a deployable artifact.
    registry keyed by tenant, guarding concurrent sweeps within one process).
    Cross-process dedupe — needed once more than one worker process runs
    sweeps concurrently — is deferred; it needs a distributed lock (Redis).
+   Being honest about what shipped: the prefork Celery worker this ADR
+   deploys gets **no** sweep dedupe today — each forked child process has
+   its own event loop and its own `asyncio.Lock` registry, so the lock does
+   not coordinate across siblings, only within one. The dedupe only
+   protects a single-process deployment (e.g. `--concurrency=1`, or a
+   non-Celery caller). Real dedupe across worker processes needs the
+   deferred Redis distributed lock.
 
 ## Consequences
 - MemCore is deployable to any Docker or Kubernetes target from this repo

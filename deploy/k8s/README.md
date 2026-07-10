@@ -6,10 +6,11 @@ This directory contains Kubernetes manifests for deploying the MemCore API and w
 
 Before applying these manifests, ensure the following services are deployed and accessible **within the cluster** at these DNS names:
 
-- **Postgres** at `postgres:5432` (or update `MEMCORE_DB_URL` in ConfigMap)
-- **Qdrant** at `qdrant:6333` (or update `MEMCORE_QDRANT_HOST` in ConfigMap)
-- **Neo4j** at `neo4j:7687` (or update `MEMCORE_NEO4J_HOST` in ConfigMap)
-- **Redis** at `redis:6379` (or update `MEMCORE_REDIS_URL` in ConfigMap)
+- **Postgres** at `postgres:5432` (or update `MEMCORE_DATABASE__URL` — now in
+  the Secret, see `secret.example.yaml`)
+- **Qdrant** at `qdrant:6333` (or update `MEMCORE_VECTOR__URL` in ConfigMap)
+- **Neo4j** at `neo4j:7687` (or update `MEMCORE_GRAPH__URL` in ConfigMap)
+- **Redis** at `redis:6379` (or update `MEMCORE_REDIS__URL` in ConfigMap)
 
 Deploy these via their official Helm charts, operators, or managed services, and ensure the `memcore` namespace can reach them. Pods will CrashLoopBackOff if these services are unavailable.
 
@@ -37,7 +38,7 @@ Apply manifests in this order to ensure proper resource dependencies:
 
 ## Applying the Manifests
 
-### One-liner for applying all manifests (after manually preparing secret.yaml):
+### Apply the manifests in order (after manually preparing secret.yaml):
 
 ```bash
 kubectl apply -f deploy/k8s/namespace.yaml
@@ -49,17 +50,9 @@ kubectl apply -f deploy/k8s/api-service.yaml
 kubectl apply -f deploy/k8s/ingress.yaml
 ```
 
-Or apply non-secret resources directly (Unix/Linux):
-
-```bash
-find deploy/k8s -maxdepth 1 -name '*.yaml' ! -name 'secret.example.yaml' -exec kubectl -n memcore apply -f {} +
-```
-
-Then separately apply your filled secret:
-
-```bash
-kubectl apply -f deploy/k8s/secret.yaml
-```
+This sequential per-file order is the documented path — applying each
+manifest explicitly avoids globbing the directory and accidentally applying
+`secret.example.yaml` in place of your filled `secret.yaml`.
 
 ## Building and Pushing the Image
 

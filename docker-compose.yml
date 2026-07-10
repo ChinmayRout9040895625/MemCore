@@ -77,11 +77,13 @@ services:
 
   worker:
     build: .
-    command: ["celery", "-A", "memcore.workers.celery_app", "worker", "--loglevel=info"]
+    command: ["celery", "-A", "memcore.workers.celery_app", "worker", "--loglevel=info", "--concurrency=1"]
     env_file: .env
     depends_on:
       redis: {condition: service_healthy}
       postgres: {condition: service_healthy}
+      qdrant: {condition: service_healthy}
+      neo4j: {condition: service_healthy}
 
 volumes:
   qdrant_data:

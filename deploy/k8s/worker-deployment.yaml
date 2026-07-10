@@ -18,12 +18,19 @@ spec:
       containers:
         - name: worker
           image: memcore:latest   # replace with your registry tag
-          command: ["celery", "-A", "memcore.workers.celery_app", "worker", "--loglevel=info"]
+          imagePullPolicy: IfNotPresent
+          command: ["celery", "-A", "memcore.workers.celery_app", "worker", "--loglevel=info", "--concurrency=1"]
           ports:
             - {name: metrics, containerPort: 9100}
           envFrom:
             - configMapRef: {name: memcore-config}
             - secretRef: {name: memcore-secrets}
+          livenessProbe:
+            exec:
+              command: ["celery", "-A", "memcore.workers.celery_app", "inspect", "ping", "--timeout", "10"]
+            initialDelaySeconds: 30
+            periodSeconds: 60
+            timeoutSeconds: 15
           resources:
             requests: {cpu: "250m", memory: "512Mi"}
             limits: {cpu: "1", memory: "1Gi"}

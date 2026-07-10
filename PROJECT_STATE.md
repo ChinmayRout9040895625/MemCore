@@ -8,8 +8,8 @@
 - **Phase 12 (Documentation & examples): NOT STARTED — awaiting user approval.**
 - Phases 1–11 complete and committed (see `git log --oneline`).
 
-## Last gate (Phase 11, 2026-07-10)
-- pytest: **219 passed, 3 integration-skipped** (Qdrant/Redis/Neo4j
+## Last gate (Phase 11, 2026-07-10, incl. final-review fix commit)
+- pytest: **221 passed, 3 integration-skipped** (Qdrant/Redis/Neo4j
   unreachable — no live backends in this environment, expected) ·
   coverage **93.81%**
 - ruff: clean · mypy (strict, 106 files): clean

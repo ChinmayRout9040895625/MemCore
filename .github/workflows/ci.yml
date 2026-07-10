@@ -53,16 +53,30 @@ jobs:
         run: pip install -e ".[dev,vector,graph,working,api,sql,scheduler,observability]"
       - name: Wait for backends
         run: |
+          ready=0
           for i in $(seq 1 30); do
             (exec 3<>/dev/tcp/localhost/6333) 2>/dev/null && \
             (exec 3<>/dev/tcp/localhost/7687) 2>/dev/null && \
-            redis-cli -h localhost ping 2>/dev/null | grep -q PONG && break
+            (exec 3<>/dev/tcp/localhost/6379) 2>/dev/null && { ready=1; break; }
             sleep 2
           done
+          if [ "$ready" -ne 1 ]; then
+            echo "backends did not become reachable in time" >&2
+            exit 1
+          fi
       - name: Integration tests
         env:
           MEMCORE_GRAPH__PASSWORD: memcore-dev-password
-        run: pytest -m integration
+        run: |
+          pytest -m integration -ra 2>&1 | tee out.txt
+          status=${PIPESTATUS[0]}
+          if [ "$status" -ne 0 ]; then
+            exit "$status"
+          fi
+          if grep -qE "^SKIPPED|[0-9]+ skipped" out.txt; then
+            echo "integration tests skipped — backends not reachable" >&2
+            exit 1
+          fi
 
   docker:
     runs-on: ubuntu-latest
@@ -71,6 +85,8 @@ jobs:
       - uses: actions/checkout@v4
       - name: Build image
         run: docker build -t memcore:ci .
+      - name: Smoke test image
+        run: docker run --rm memcore:ci python -c "import memcore; import memcore.api; print('image import OK')"
       - name: Validate compose
         run: |
           cp .env.example .env

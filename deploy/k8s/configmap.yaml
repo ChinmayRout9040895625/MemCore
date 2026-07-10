@@ -6,7 +6,8 @@ metadata:
 data:
   MEMCORE_ENV: "production"
   MEMCORE_LOG_JSON: "true"
-  MEMCORE_DATABASE__URL: "postgresql+asyncpg://memcore:memcore@postgres:5432/memcore"
+  # MEMCORE_DATABASE__URL embeds DB credentials — it lives in the Secret
+  # (secret.example.yaml / your filled secret.yaml), not here.
   MEMCORE_VECTOR__URL: "http://qdrant:6333"
   MEMCORE_GRAPH__URL: "bolt://neo4j:7687"
   MEMCORE_REDIS__URL: "redis://redis:6379/0"

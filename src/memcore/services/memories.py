@@ -121,6 +121,11 @@ class MemoryService:
         record = await self._store.get(tenant_id, memory_id)
         if record is None:
             raise NotFoundError(f"memory {memory_id} not found")
+        if record.status is MemoryStatus.SUPERSEDED and mode == "soft":
+            raise ValidationError(
+                f"memory {memory_id} is superseded; soft delete targets the "
+                "active version"
+            )
         status = (
             MemoryStatus.SOFT_DELETED if mode == "soft" else MemoryStatus.HARD_DELETED
         )
@@ -148,9 +153,10 @@ class MemoryService:
             raise ValidationError(
                 f"memory {memory_id} is {record.status.value}, not soft-deleted"
             )
-        await self._store.set_status(tenant_id, memory_id, MemoryStatus.ACTIVE)
         restored = record.model_copy(update={"status": MemoryStatus.ACTIVE})
-        await self._index(restored)  # re-add to the retrievable vector index
+        await self._index(restored)  # re-add to the retrievable vector index first;
+        # an embedder failure here leaves the record safely SOFT_DELETED.
+        await self._store.set_status(tenant_id, memory_id, MemoryStatus.ACTIVE)
         await self._audit(tenant_id, AuditAction.RESTORE, memory_id,
                           reason="restore soft-deleted")
         return restored
