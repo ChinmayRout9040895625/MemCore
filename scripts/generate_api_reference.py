@@ -80,13 +80,6 @@ def _build_schema() -> dict[str, Any]:
     return schema
 
 
-def _resolve_ref(schema: dict[str, Any], ref: str) -> dict[str, Any]:
-    node: Any = schema
-    for part in ref.removeprefix("#/").split("/"):
-        node = node[part]
-    return dict(node)
-
-
 def _type_of(
     prop: dict[str, Any], schema: dict[str, Any], *, table: bool = False
 ) -> str:
@@ -122,7 +115,12 @@ def _model_table(name: str, schema: dict[str, Any], emitted: set[str]) -> list[s
         lines += [model["description"].strip(), ""]
     properties: dict[str, Any] = model.get("properties", {})
     if not properties:
-        lines += ["(no fields)", ""]
+        enum_values = model.get("enum")
+        if enum_values:
+            values = ", ".join(f"`{v}`" for v in enum_values)
+            lines += [f"Enum ({model.get('type', 'string')}): {values}", ""]
+        else:
+            lines += ["(no fields)", ""]
         return lines
     required = set(model.get("required", []))
     lines += ["| Field | Type | Required | Default |", "|---|---|---|---|"]

@@ -315,7 +315,7 @@ because they are for probes and scrapers, not API clients:
 
 The three cognitive memory tiers (see docs/design/taxonomy.md).
 
-(no fields)
+Enum (string): `working`, `episodic`, `semantic`
 
 ### `MemoryRecord`
 
@@ -397,4 +397,4 @@ Records are immutable and versioned (ADR-007): an UPDATE writes a new
 version and marks the prior one ``SUPERSEDED``. Forgetting is reversible
 (``SOFT_DELETED``) until a retention/GDPR job makes it ``HARD_DELETED``.
 
-(no fields)
+Enum (string): `active`, `superseded`, `soft_deleted`, `hard_deleted`
