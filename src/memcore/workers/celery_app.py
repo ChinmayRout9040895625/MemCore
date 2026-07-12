@@ -60,6 +60,23 @@ def _start_worker_metrics(**_kwargs: Any) -> None:
 _cache: dict[str, Any] = {}
 
 
+def _get_loop() -> asyncio.AbstractEventLoop:
+    """One persistent event loop, reused for the worker process's lifetime.
+
+    ``_get_consolidation``/``_get_decay`` cache an async SQL engine (asyncpg
+    pool) across task calls. ``asyncio.run()`` creates and tears down a new
+    loop on every call, which orphans a pool's connections after the first
+    call -- asyncpg then raises "attached to a different loop" on the
+    second job. Running every task on the same loop keeps the cached pool
+    valid for as long as the process lives.
+    """
+    loop = _cache.get("loop")
+    if loop is None or loop.is_closed():
+        loop = asyncio.new_event_loop()
+        _cache["loop"] = loop
+    return loop
+
+
 def _get_consolidation(settings: Settings) -> Any:
     """Build (once per worker process) the consolidation service graph."""
     if "service" not in _cache:
@@ -95,7 +112,9 @@ def consolidate_session(tenant_id: str, session_id: str) -> dict[str, Any]:
     started = time.perf_counter()
     try:
         service = _get_consolidation(_settings)
-        report = asyncio.run(service.consolidate_session(tenant_id, session_id))
+        report = _get_loop().run_until_complete(
+            service.consolidate_session(tenant_id, session_id)
+        )
         logger.info("consolidated", extra={"session_id": session_id})
         return report.model_dump()
     finally:
@@ -135,7 +154,7 @@ def decay_tenant(tenant_id: str) -> dict[str, Any]:
     started = time.perf_counter()
     try:
         service = _get_decay(_settings)
-        report = asyncio.run(service.sweep(tenant_id))
+        report = _get_loop().run_until_complete(service.sweep(tenant_id))
         logger.info("decay swept", extra={"tenant_id": tenant_id})
         return report.model_dump()
     finally:

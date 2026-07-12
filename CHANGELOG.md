@@ -5,6 +5,15 @@ Format follows [Keep a Changelog](https://keepachangelog.com/); versions follow 
 
 ## [Unreleased]
 
+### Fixed (post-v1)
+- Celery worker: run every task on one persistent event loop
+  (`memcore.workers.celery_app._get_loop`) instead of a fresh loop per
+  `asyncio.run` call. The cached per-process service graph (incl. the asyncpg
+  connection pool) was bound to the first task's loop, so the *second*
+  consolidation/decay job in a worker's lifetime crashed with
+  "got Future attached to a different loop" and silently produced no
+  memories. Regression-guarded by `tests/unit/test_workers.py`.
+
 ### Added — Phase 12: Documentation & examples
 - `docs/api-reference.md` generated from the OpenAPI schema by
   `scripts/generate_api_reference.py`; a CI drift test keeps it current —
