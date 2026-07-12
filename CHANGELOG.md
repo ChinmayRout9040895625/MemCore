@@ -5,6 +5,12 @@ Format follows [Keep a Changelog](https://keepachangelog.com/); versions follow 
 
 ## [Unreleased]
 
+### Added (post-v1)
+- SDK: `restore_memory(memory_id)` on both `AsyncMemCoreClient` and
+  `MemCoreClient`, wrapping the `POST /v1/memories/{id}/restore` endpoint
+  (REST endpoint shipped Phase 11, no typed SDK wrapper until now). Closes
+  the first post-v1 backlog item.
+
 ### Fixed (post-v1)
 - Celery worker: run every task on one persistent event loop
   (`memcore.workers.celery_app._get_loop`) instead of a fresh loop per

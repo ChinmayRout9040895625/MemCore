@@ -188,6 +188,10 @@ class AsyncMemCoreClient:
             "DELETE", f"/v1/memories/{memory_id}", params={"mode": mode}
         )
 
+    async def restore_memory(self, memory_id: str) -> MemoryRecord:
+        data = await self._request("POST", f"/v1/memories/{memory_id}/restore")
+        return MemoryRecord.model_validate(data["memory"])
+
     # -- recall ------------------------------------------------------------
     async def recall(
         self,

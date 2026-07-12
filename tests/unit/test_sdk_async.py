@@ -21,6 +21,7 @@ from memcore.adapters.inmemory import (
 from memcore.api.app import create_app
 from memcore.api.deps import AppState
 from memcore.config import Settings
+from memcore.domain.enums import MemoryStatus
 from memcore.sdk import AuthError, JobTimeout, NotFoundError, ServerError, TransportError
 from memcore.sdk._shared import RetryPolicy
 from memcore.sdk.async_client import AsyncMemCoreClient
@@ -106,11 +107,23 @@ async def test_end_to_end_memory_lifecycle() -> None:
         assert outcome.context is not None
 
         # Soft delete is intentionally recoverable (ADR-0007): a soft-deleted
-        # record still reads back by id (hidden only from listings/recall).
-        # Hard delete is what makes a memory truly inaccessible.
+        # record still reads back by id (hidden only from listings/recall),
+        # and restore_memory brings it back to ACTIVE.
+        await client.forget_memory(corrected.id, mode="soft")
+        soft_deleted = await client.get_memory(corrected.id)
+        assert soft_deleted.status is MemoryStatus.SOFT_DELETED
+
+        restored = await client.restore_memory(corrected.id)
+        assert restored.status is MemoryStatus.ACTIVE
+        assert restored.id == corrected.id
+
+        # Hard delete is what makes a memory truly inaccessible -- and
+        # restore on a hard-deleted (or missing) id is a 404, not recoverable.
         await client.forget_memory(corrected.id, mode="hard")
         with pytest.raises(NotFoundError):
             await client.get_memory(corrected.id)
+        with pytest.raises(NotFoundError):
+            await client.restore_memory(corrected.id)
 
 
 async def test_session_and_jobs_flow() -> None:

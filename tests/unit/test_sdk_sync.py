@@ -108,7 +108,7 @@ def test_post_never_retried_and_maps_errors() -> None:
     client.close()
 
 
-def test_full_surface_round_trip() -> None:
+def test_full_surface_round_trip() -> None:  # noqa: PLR0915
     """Every remaining public method routes, parses, and returns typed models."""
     session = {"id": "s1", "tenant_id": "t", "agent_id": "a1"}
     memory = {
@@ -163,6 +163,7 @@ def test_full_surface_round_trip() -> None:
         assert client.close_session("s1").closed
         assert client.memory_versions("m1")[0].id == "m1"
         assert client.correct_memory("m1", content="Bruno is a beagle.").version == 2
+        assert client.restore_memory("m1").id == "m1"
         client.forget_memory("m1")
         outcome = client.recall("a1", "dog", weights={"importance": 2.0},
                                 graph_expand=False)

@@ -25,8 +25,8 @@
   (`implementer`, `debugger`). Dispatch test passed (py.typed, gate green).
 
 ## Post-v1 backlog
-1. SDK `restore_memory` method (REST endpoint shipped Phase 11, no typed
-   SDK wrapper yet).
+1. ~~SDK `restore_memory` method~~ — DONE (post-v1, 2026-07-13): added to
+   both `AsyncMemCoreClient` and `MemCoreClient`.
 2. Distributed (cross-process) decay-sweep dedupe (Redis lock) + in-app/
    distributed rate limiting (edge-only today).
 3. Per-role slim Docker images (API without `embeddings`/`llm`, worker
@@ -39,6 +39,11 @@
 7. Grafana dashboards and alert rules on top of Phase 10's metrics.
 8. Real-corpus evaluation datasets (Phase 8's harness runs on synthetic
    data only).
+
+## Post-v1 fixes already landed
+- 2026-07-13: Celery worker event-loop bug (see CHANGELOG) — found via live
+  manual testing, not caught by the automated suite; now regression-guarded.
+- 2026-07-13: SDK `restore_memory` (backlog item 1 above).
 
 ## Open decisions for the user
 - Define the post-v1 roadmap (none pending).

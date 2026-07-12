@@ -191,6 +191,10 @@ class MemCoreClient:
             "DELETE", f"/v1/memories/{memory_id}", params={"mode": mode}
         )
 
+    def restore_memory(self, memory_id: str) -> MemoryRecord:
+        data = self._request("POST", f"/v1/memories/{memory_id}/restore")
+        return MemoryRecord.model_validate(data["memory"])
+
     # -- recall ------------------------------------------------------------
     def recall(
         self,
