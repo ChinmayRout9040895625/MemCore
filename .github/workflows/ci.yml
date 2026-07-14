@@ -45,19 +45,32 @@ jobs:
       redis:
         image: redis:7.4-alpine
         ports: ["6379:6379"]
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: memcore
+          POSTGRES_PASSWORD: memcore
+          POSTGRES_DB: memcore
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with: {python-version: "3.12", cache: pip}
       - name: Install
-        run: pip install -e ".[dev,vector,graph,working,api,sql,scheduler,observability]"
+        run: pip install -e ".[dev,vector,graph,working,api,sql,postgres,scheduler,observability]"
       - name: Wait for backends
         run: |
           ready=0
           for i in $(seq 1 30); do
             (exec 3<>/dev/tcp/localhost/6333) 2>/dev/null && \
             (exec 3<>/dev/tcp/localhost/7687) 2>/dev/null && \
-            (exec 3<>/dev/tcp/localhost/6379) 2>/dev/null && { ready=1; break; }
+            (exec 3<>/dev/tcp/localhost/6379) 2>/dev/null && \
+            (exec 3<>/dev/tcp/localhost/5432) 2>/dev/null && { ready=1; break; }
             sleep 2
           done
           if [ "$ready" -ne 1 ]; then
@@ -67,6 +80,7 @@ jobs:
       - name: Integration tests
         env:
           MEMCORE_GRAPH__PASSWORD: memcore-dev-password
+          MEMCORE_DATABASE__URL: postgresql+asyncpg://memcore:memcore@localhost:5432/memcore
         run: |
           pytest -m integration -ra 2>&1 | tee out.txt
           status=${PIPESTATUS[0]}

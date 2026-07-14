@@ -16,6 +16,7 @@ import pytest
 
 from memcore.testing import (
     check_graph_store_contract,
+    check_memory_store_contract,
     check_vector_store_contract,
     check_working_memory_contract,
 )
@@ -53,6 +54,26 @@ async def test_redis_working_memory_contract() -> None:
     try:
         await store.ping()
         await check_working_memory_contract(store)
+    finally:
+        await store.close()
+
+
+async def test_postgres_memory_store_contract() -> None:
+    from memcore.adapters.sql import SqlMemoryStore
+
+    url = os.getenv(
+        "MEMCORE_DATABASE__URL",
+        "postgresql+asyncpg://memcore:memcore@localhost:5432/memcore",
+    )
+    store = SqlMemoryStore(url)
+    try:
+        await store.ping()
+    except Exception:
+        await store.close()
+        pytest.skip(f"Postgres not reachable at {url}")
+    try:
+        await store.init()
+        await check_memory_store_contract(store)
     finally:
         await store.close()
 

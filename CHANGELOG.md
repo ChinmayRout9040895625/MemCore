@@ -10,6 +10,14 @@ Format follows [Keep a Changelog](https://keepachangelog.com/); versions follow 
   `MemCoreClient`, wrapping the `POST /v1/memories/{id}/restore` endpoint
   (REST endpoint shipped Phase 11, no typed SDK wrapper until now). Closes
   the first post-v1 backlog item.
+- CI: `postgres` service container in the `integration` job +
+  `test_postgres_memory_store_contract` (`tests/integration/test_backends.py`),
+  running the shipped `check_memory_store_contract` kit against a real
+  asyncpg-backed `SqlMemoryStore` — previously only exercised against SQLite.
+  Also fixed the integration job's install line, which had `sql` (SQLAlchemy
+  + aiosqlite) but not `postgres` (asyncpg) — the new test would have hard
+  crashed with `ModuleNotFoundError` instead of running, caught by verifying
+  locally against a real Postgres container before trusting the CI diff.
 
 ### Fixed (post-v1)
 - Celery worker: run every task on one persistent event loop
