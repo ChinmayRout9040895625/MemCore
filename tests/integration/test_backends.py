@@ -65,7 +65,10 @@ async def test_postgres_memory_store_contract() -> None:
         "MEMCORE_DATABASE__URL",
         "postgresql+asyncpg://memcore:memcore@localhost:5432/memcore",
     )
-    store = SqlMemoryStore(url)
+    try:
+        store = SqlMemoryStore(url)
+    except ModuleNotFoundError:
+        pytest.skip("asyncpg not installed; install the 'postgres' extra to run this test")
     try:
         await store.ping()
     except Exception:
