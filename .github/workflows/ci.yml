@@ -82,7 +82,7 @@ jobs:
           MEMCORE_GRAPH__PASSWORD: memcore-dev-password
           MEMCORE_DATABASE__URL: postgresql+asyncpg://memcore:memcore@localhost:5432/memcore
         run: |
-          pytest -m integration -ra 2>&1 | tee out.txt
+          pytest -m integration -ra --no-cov 2>&1 | tee out.txt
           status=${PIPESTATUS[0]}
           if [ "$status" -ne 0 ]; then
             exit "$status"
